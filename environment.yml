@@ -1,0 +1,14 @@
+# conda environment file for the project. Install it with:
+# conda env create -f environment.yml
+name: medio
+channels:
+  - anaconda
+  - conda-forge
+dependencies:
+  - numpy
+  - itk
+  - nibabel
+  - pip
+  - pip:
+    - SimpleITK
+    - dicom-numpy  # includes pydicom
