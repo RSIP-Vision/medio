@@ -78,6 +78,7 @@ target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
+*/.ipynb_checkpoints/*
 
 # IPython
 profile_default/
@@ -141,3 +142,6 @@ cython_debug/
 # static files generated from Django application using `collectstatic`
 media
 static
+
+# JetBrains (PyCharm)
+.idea/
