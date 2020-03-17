@@ -1,7 +1,7 @@
 import nibabel as nib
 from pathlib import Path
-from img_io.metadata import MetaData
-from img_io.affine import Affine
+from metadata.metadata import MetaData
+from metadata.affine import Affine
 
 
 class NibIO:

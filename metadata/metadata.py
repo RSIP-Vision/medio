@@ -1,5 +1,5 @@
-from img_io.convert_nib_itk import convert, inv_axcodes, convert_affine
-from img_io.affine import Affine
+from metadata.convert_nib_itk import convert, inv_axcodes, convert_affine
+from metadata.affine import Affine
 from nibabel import aff2axcodes
 
 
@@ -8,7 +8,8 @@ class MetaData:
         """
         Initialize medical image's metadata
         :param affine: affine matrix of class Affine, numpy float array of shape (4, 4)
-        :param orig_ornt: orientation string code, str of length 3
+        :param orig_ornt: orientation string code, str of length 3 or None (was not computed because the image was not
+        reoriented)
         :param coord_sys: 'itk' or 'nib', the coordinate system of the given affine and orientation: itk or nib (nifti)
         """
         if not isinstance(affine, Affine):
@@ -21,8 +22,12 @@ class MetaData:
         self.coord_sys = coord_sys
 
     def __repr__(self):
-        return f'Affine:\n{self.affine}\nSpacing: {self.spacing}\nCoordinate system: {self.coord_sys}' \
-               f'\nOrientation: {self.ornt}\nOriginal orientation: {self.orig_ornt}'
+        return (f'Affine:\n'
+                f'{self.affine}\n'
+                f'Spacing: {self.spacing}\n'
+                f'Coordinate system: {self.coord_sys}\n'
+                f'Orientation: {self.ornt}\n'
+                f'Original orientation: {self.orig_ornt}')
 
     def convert(self, dest_coord_sys):
         """

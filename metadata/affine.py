@@ -21,9 +21,10 @@ class Affine(np.ndarray):
         1. (d+1)x(d+1) matrix as affine (d is the dimension of the space)
         2. affine=None and construction from direction, spacing and origin parameters
         :param affine: (d+1)x(d+1) affine matrix, comprised of the M matrix and origin shift b: y = M*x + b
-        :param direction: dxd direction matrix (rotations)
+        x is the index vector of length d and y is the corresponding physical coordinates vector of the same length
+        :param direction: dxd direction matrix (only rotations without scaling)
         :param spacing: scaling of the axes - vector of length d
-        :param origin: the origin - b in the formula above - vector of length d (or scalar)
+        :param origin: the origin - b in the formula above - vector of length d (or a scalar)
         :return:
         """
         if affine is None:

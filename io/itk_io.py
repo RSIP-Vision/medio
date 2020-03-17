@@ -2,10 +2,10 @@ import itk
 import numpy as np
 from pathlib import Path
 from typing import Union
-from img_io.affine import Affine
-from img_io.itk_orientation import itk_orientation_code, codes_str_dict
-from img_io.pdcm_io import PdcmIO
-from img_io.metadata import MetaData
+from metadata.affine import Affine
+from metadata.itk_orientation import itk_orientation_code, codes_str_dict
+from io.pdcm_io import PdcmIO
+from metadata.metadata import MetaData
 
 
 class ItkIO:

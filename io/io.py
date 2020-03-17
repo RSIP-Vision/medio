@@ -1,7 +1,7 @@
 from pathlib import Path
-from img_io.nib_io import NibIO
-from img_io.itk_io import ItkIO
-from img_io.convert_nib_itk import inv_axcodes
+from io.nib_io import NibIO
+from io.itk_io import ItkIO
+from metadata.convert_nib_itk import inv_axcodes
 
 
 def is_nifti(filename, check_exist=True):
@@ -17,7 +17,7 @@ def is_nifti(filename, check_exist=True):
 def read_img(input_path, desired_ornt=None, backend=None):
     """
     Read medical image with nibabel or itk
-    :param input_path: the input path of image file or a directory containing dicom series
+    :param input_path: str or os.PathLike, the input path of image file or a directory containing dicom series
     :param desired_ornt: optional parameter for reorienting the image to desired orientation, e.g. 'RAS'
     The desired_ornt string is in itk standard (if NibIO is used, the orientation is converted accordingly)
     :param backend: optional parameter for setting the reader backend, 'itk' or 'nib'
@@ -48,7 +48,7 @@ def read_img(input_path, desired_ornt=None, backend=None):
 def save_img(filename, np_image, metadata, use_original_ornt=True, dicom_template_file=None, backend=None):
     """
     Save numpy image with corresponding metadata to file
-    :param filename: the output filename
+    :param filename: str or os.PathLike, the output filename
     :param np_image: the numpy image
     :param metadata: the metadata of the image
     :param use_original_ornt: whether to save in the original orientation stored in metadata.orig_ornt or not
