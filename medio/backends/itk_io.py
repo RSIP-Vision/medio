@@ -2,10 +2,10 @@ import itk
 import numpy as np
 from pathlib import Path
 from typing import Union
-from metadata.affine import Affine
-from metadata.itk_orientation import itk_orientation_code, codes_str_dict
-from metadata.metadata import MetaData
-from medio.pdcm_io import PdcmIO
+from medio.metadata.affine import Affine
+from medio.metadata.itk_orientation import itk_orientation_code, codes_str_dict
+from medio.metadata.metadata import MetaData
+from medio.backends.pdcm_io import PdcmIO
 
 
 class ItkIO:

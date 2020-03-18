@@ -4,7 +4,7 @@ This module is based on the C++ ITK code - itkSpatialOrientation.h
 
 from enum import IntEnum
 import itertools
-from utils.two_way_dict import TwoWayDict
+from medio.utils.two_way_dict import TwoWayDict
 
 
 class AxCodes(IntEnum):

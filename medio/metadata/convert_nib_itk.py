@@ -29,8 +29,8 @@ Works both ways: itk -> nib and nib -> itk, the usage is the same:
 """
 
 import numpy as np
-from utils.two_way_dict import TwoWayDict
-from metadata.affine import Affine
+from medio.utils.two_way_dict import TwoWayDict
+from medio.metadata.affine import Affine
 
 
 # store compactly axis directions codes

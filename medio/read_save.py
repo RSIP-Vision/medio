@@ -1,7 +1,7 @@
 from pathlib import Path
-from medio.nib_io import NibIO
-from medio.itk_io import ItkIO
-from metadata.convert_nib_itk import inv_axcodes
+from medio.backends.nib_io import NibIO
+from medio.backends.itk_io import ItkIO
+from medio.metadata.convert_nib_itk import inv_axcodes
 
 
 def is_nifti(filename, check_exist=True):

@@ -1,7 +1,7 @@
 import nibabel as nib
 from pathlib import Path
-from metadata.metadata import MetaData
-from metadata.affine import Affine
+from medio.metadata.metadata import MetaData
+from medio.metadata.affine import Affine
 
 
 class NibIO:
