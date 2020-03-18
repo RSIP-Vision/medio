@@ -4,8 +4,8 @@ from pathlib import Path
 from typing import Union
 from metadata.affine import Affine
 from metadata.itk_orientation import itk_orientation_code, codes_str_dict
-from io.pdcm_io import PdcmIO
 from metadata.metadata import MetaData
+from medio.pdcm_io import PdcmIO
 
 
 class ItkIO:
@@ -76,7 +76,7 @@ class ItkIO:
 
     @staticmethod
     def read_img_file_long(filename, image_type=image_type):
-        """Longer version of read_img_file which returns the itk image and io engine string"""
+        """Longer version of read_img_file which returns the itk image and medio engine string"""
         reader = itk.ImageFileReader[image_type].New()
         reader.SetFileName(filename)
         reader.Update()

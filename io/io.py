@@ -1,6 +1,6 @@
 from pathlib import Path
-from io.nib_io import NibIO
-from io.itk_io import ItkIO
+from medio.nib_io import NibIO
+from medio.itk_io import ItkIO
 from metadata.convert_nib_itk import inv_axcodes
 
 
