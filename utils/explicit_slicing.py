@@ -1,5 +1,5 @@
 def explicit_inds(key, shape):
-    """Make getitem key explicit"""
+    """Make getitem key explicit in the context of numpy ndarrays basic slicing and indexing"""
     ndim = len(shape)
     # set defaults
     start = [0] * ndim
