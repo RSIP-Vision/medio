@@ -32,7 +32,7 @@ class MedImg:
         np_image = self.np_image[item]
         start, stop, stride = explicit_inds(item, self.np_image.shape)
         affine = Affine(self.metadata.Affine.copy())
-        affine.spacing = affine.spacing * stride
         affine.origin = affine.index2coord(start)
+        affine.spacing = affine.spacing * stride
         metadata = MetaData(affine, self.metadata.orig_ornt, self.metadata.coord_sys)
         return MedImg(np_image, metadata)
