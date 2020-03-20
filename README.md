@@ -15,7 +15,7 @@ It includes translation between the metadata conventions, reorientations, affine
 The conda environment yml is in the project's root.
 
 # Usage
-```
+```python
 >>> from medio import read_img, save_img
 >>> # read a dicom series from a folder
 >>> img_arr, metadata = read_img('data/dicom-folder/', desired_ornt='IAR')
