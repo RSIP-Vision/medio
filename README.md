@@ -5,14 +5,24 @@
 This package unifies the io engines of itk, nibabel, and pydicom packages in a simple and comprehensive interface.
 It includes translation between the metadata conventions, reorientations, affine matrix computation.
 
+# Installation
+Download the [whl file](https://drive.google.com/uc?export=download&id=1JTTrUGeshXd2m--0LK35u5RWY0CvAHVE)
+and install it with:
+```
+(<env-name>) C:\Users\<username>\Downloads>pip install medio-0.0-py3-none-any.whl
+```
+This will install the medio python package and its dependencies in your environment.
+
 ## Requirements
+The dependencies are:
 - numpy
-- itk
-- simple itk
+- itk (itk-io, itk-filtering)
 - nibabel
 - pydicom + dicom-numpy
+- (Optional: SimpleITK)
 
-The conda environment yml is in the project's root.
+
+A conda environment yml is in the project's root.
 
 # Usage
 ```python
