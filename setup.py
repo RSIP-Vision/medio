@@ -1,4 +1,5 @@
 from setuptools import setup, find_packages
+from medio import __version__
 
 
 def readme():
@@ -7,13 +8,13 @@ def readme():
 
 
 setup(name='medio',
-      version='0.0',
+      version=__version__,
       description='Medical images I/O python package',
       long_description=readme(),
       url='https://gitlab.com/rsip/medio',
       author='Jonathan Daniel',
       author_email='jonathan@rsipvision.com',
-      packages=find_packages(exclude=['*.tests']),  # TODO: exclude does not work apparently
+      packages=find_packages(exclude=['*.tests']),
       install_requires=[
             'itk-io',
             'itk-filtering',
