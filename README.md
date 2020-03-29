@@ -6,7 +6,7 @@ This package unifies the io engines of itk, nibabel, and pydicom packages in a s
 It includes translation between the metadata conventions, reorientations, affine matrix computation.
 
 # Installation
-Download the [whl file](https://drive.google.com/uc?export=download&id=1JTTrUGeshXd2m--0LK35u5RWY0CvAHVE)
+Download the [whl file](https://drive.google.com/file/d/1JTTrUGeshXd2m--0LK35u5RWY0CvAHVE/view?usp=sharing)
 and install it with:
 ```
 (<env-name>) C:\Users\<username>\Downloads>pip install medio-0.0-py3-none-any.whl
