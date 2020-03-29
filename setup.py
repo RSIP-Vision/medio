@@ -2,18 +2,19 @@ from setuptools import setup, find_packages
 from medio import __version__
 
 
-def readme():
-    with open('README.md') as f:
-        return f.read()
+with open('README.md') as f:
+    long_description = f.read()
 
 
 setup(name='medio',
       version=__version__,
       description='Medical images I/O python package',
-      long_description=readme(),
+      long_description=long_description,
+      long_description_content_type='text/markdown',
       url='https://gitlab.com/rsip/medio',
       author='Jonathan Daniel',
       author_email='jonathan@rsipvision.com',
+      keywords=['medical images', 'IO', 'itk', 'nibabel', 'pydicom'],
       packages=find_packages(exclude=['*.tests']),
       install_requires=[
             'itk-io',
@@ -29,9 +30,10 @@ setup(name='medio',
             'Intended Audience :: Developers',
             'Intended Audience :: Healthcare Industry',
 
-            'Programming Language :: Python :: 3',
-
             'Topic :: Scientific/Engineering :: Medical Science Apps.',
-            'Topic :: Software Development :: Libraries :: Python Modules'
+            'Topic :: Software Development :: Libraries :: Python Modules',
+
+            'Programming Language :: Python :: 3',
+            'Operating System :: OS Independent'
       ],
       zip_safe=False)
