@@ -4,9 +4,11 @@ from dicom_numpy import combine_slices
 from pathlib import Path
 from medio.backends.unpack_ds import unpack_dataset
 from medio.metadata.pdcm_ds import convert_ds, FramedFileDataset
+from medio.metadata.metadata import MetaData
 
 
 class PdcmIO:
+    coord_sys = 'itk'
 
     @staticmethod
     def read_img(input_path, globber='*'):
@@ -24,7 +26,7 @@ class PdcmIO:
         ds = pydicom.dcmread(str(filename))
         ds = convert_ds(ds)
         img, affine = unpack_dataset(ds)
-        return img, affine
+        return img, PdcmIO.aff2meta(affine)
 
     @staticmethod
     def read_dcm_dir(input_dir, globber='*'):
@@ -38,7 +40,11 @@ class PdcmIO:
         slices = [pydicom.dcmread(str(filename)) for filename in files]
         slices.sort(key=lambda x: int(x.InstanceNumber))
         img, affine = combine_slices(slices)
-        return img, affine
+        return img, PdcmIO.aff2meta(affine)
+
+    @staticmethod
+    def aff2meta(affine):
+        return MetaData(affine, coord_sys=PdcmIO.coord_sys)
 
     @staticmethod
     def save_arr2dcm_file(output_filename, img_arr, template_filename, keep_rescale=False):

@@ -27,7 +27,8 @@ class FramedFileDataset(FileDataset):
 
     @property
     def SliceThickness(self):
-        return self.SharedFunctionalGroupsSequence[0].PixelMeasuresSequence[0].SliceThickness
+        return getattr(self.SharedFunctionalGroupsSequence[0].PixelMeasuresSequence[0], 'SliceThickness',
+                       getattr(self.SharedFunctionalGroupsSequence[0].PixelMeasuresSequence[0], 'SpacingBetweenSlices'))
 
     @property
     def RescaleIntercept(self):

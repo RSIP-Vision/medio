@@ -71,15 +71,18 @@ def unpack_dataset(dataset, rescale=None):
 
 
 def _unpack_pixel_array(dataset, rescale=None):
-    voxels = dataset.pixel_array  # TODO: [:, :, k].T, order='F' ??
+    voxels = dataset.pixel_array.T
 
     if rescale is None:
         rescale = _requires_rescaling(dataset)
 
     if rescale:
-        voxels = voxels.astype(np.float32)  # TODO: why not int16: dataset.pixel_array.astype('int16') ?
-        slope = float(getattr(dataset, 'RescaleSlope', 1))
-        intercept = float(getattr(dataset, 'RescaleIntercept', 0))
+        voxels = voxels.astype('int16')
+        slope = getattr(dataset, 'RescaleSlope', 1)
+        intercept = getattr(dataset, 'RescaleIntercept', 0)
+        if int(slope) == slope and int(intercept) == intercept:
+            slope = int(slope)
+            intercept = int(intercept)
         voxels = voxels * slope + intercept
 
     return voxels
@@ -94,10 +97,10 @@ def _ijk_to_patient_xyz_transform_matrix(dataset):
 
     transform = np.identity(4, dtype=np.float32)
 
-    transform[:3, 0] = row_cosine * column_spacing  # TODO: row <-> column??
-    transform[:3, 1] = column_cosine * row_spacing  # TODO: column <-> row??
+    transform[:3, 0] = row_cosine * column_spacing
+    transform[:3, 1] = column_cosine * row_spacing
     transform[:3, 2] = slice_cosine * slice_spacing
 
-    transform[:3, 3] = dataset.ImagePositionPatient  # TODO: check whether this is true
+    transform[:3, 3] = dataset.ImagePositionPatient
 
     return transform

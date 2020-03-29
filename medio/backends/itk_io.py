@@ -188,4 +188,3 @@ class ItkIO:
         reoriented_itk_img = orient.GetOutput()
         original_orientation_code = orient.GetGivenCoordinateOrientation()
         return reoriented_itk_img, original_orientation_code
-
