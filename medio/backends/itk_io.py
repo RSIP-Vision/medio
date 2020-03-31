@@ -38,8 +38,15 @@ class ItkIO:
         return image_np, metadata
 
     @staticmethod
-    def prepare_dcm_image(image_np, dtype=None):
-        """Change image_np to correct data type for saving dicom"""
+    def prepare_dcm_image(image_np):
+        """Change image_np to correct data type for saving a single dicom file"""
+
+        # if the image is 2d it can be also signed
+        image_np_sq = np.squeeze(image_np)
+        if image_np_sq.ndim == 2:
+            return image_np_sq, image_np_sq.dtype
+
+        # if it is 3d, the supported data types are:
         dcm_dtypes = [np.uint8, np.uint16]
 
         if image_np.dtype in dcm_dtypes:
