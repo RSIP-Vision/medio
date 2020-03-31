@@ -54,33 +54,30 @@ def read_img(input_path, desired_ornt=None, backend=None, **kwargs):
     return np_image, metadata
 
 
-def save_img(filename, np_image, metadata, use_original_ornt=True, dicom_template_file=None, backend=None):
+def save_img(filename, np_image, metadata, use_original_ornt=True, backend=None, **kwargs):
     """
     Save numpy image with corresponding metadata to file
     :param filename: str or os.PathLike, the output filename
     :param np_image: the numpy image
     :param metadata: the metadata of the image
     :param use_original_ornt: whether to save in the original orientation stored in metadata.orig_ornt or not
-    :param dicom_template_file: for saving single dicom file with pydicom
     :param backend: optional - 'itk', 'nib' or None
     """
     nib_writer = NibIO.save_img
     itk_writer = ItkIO.save_img
-    if dicom_template_file is None:
-        if backend is None:
-            if is_nifti(filename, check_exist=False):
-                writer = nib_writer
-            else:
-                writer = itk_writer
+    if backend is None:
+        if is_nifti(filename, check_exist=False):
+            writer = nib_writer
         else:
-            if backend == 'nib':
-                writer = nib_writer
-            elif backend == 'itk':
-                writer = itk_writer
-            else:
-                raise ValueError('The backend argument must be one of: \'itk\', \'nib\', None')
-
-        writer(filename, np_image, metadata, use_original_ornt)
+            writer = itk_writer
     else:
-        itk_writer(filename, np_image, metadata, use_original_ornt, dicom_template_file)
+        if backend == 'nib':
+            writer = nib_writer
+        elif backend == 'itk':
+            writer = itk_writer
+        else:
+            raise ValueError('The backend argument must be one of: \'itk\', \'nib\', None')
+
+    writer(filename, np_image, metadata, use_original_ornt, **kwargs)
+
 

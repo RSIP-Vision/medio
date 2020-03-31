@@ -1,5 +1,6 @@
 import nibabel as nib
 from pathlib import Path
+from typing import Union
 from medio.metadata.metadata import MetaData
 from medio.metadata.affine import Affine
 
@@ -23,9 +24,11 @@ class NibIO:
     def save_img(filename, img, metadata, use_original_ornt=True, dtype='int16'):
         """
         Saves the given image as a NIFTI file.
-        :param filename: output filename, including a '.nii.gz' suffix.
+        :param filename: output filename, including a '.nii.gz' or '.nii' suffix.
         :param img: image data array.
         :param metadata: the matching metadata.
+        :param use_original_ornt: whether to use the original orientation of the image of not
+        :param dtype: the data type of the saved image
         """
         Path(filename).parent.mkdir(parents=True, exist_ok=True)
         metadata.convert(NibIO.coord_sys)
@@ -36,7 +39,7 @@ class NibIO:
         nib.save(img_struct, filename)
 
     @staticmethod
-    def reorient(img_struct, desired_axcodes=None):
+    def reorient(img_struct, desired_axcodes: Union[tuple, str, None]):
         """Reorient a nibabel image to a desired orientation described by desired_axcodes strings tuple, for example
         ('L', 'P', 'I'). If desired_axcodes is None it returns the given img_struct"""
         if desired_axcodes is not None:

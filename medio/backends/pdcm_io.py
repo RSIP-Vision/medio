@@ -1,8 +1,7 @@
 import pydicom
-from pydicom.tag import Tag
-from dicom_numpy import combine_slices
 from pathlib import Path
-from medio.backends.unpack_ds import unpack_dataset
+from dicom_numpy import combine_slices
+from medio.backends.pdcm_unpack_ds import unpack_dataset
 from medio.metadata.pdcm_ds import convert_ds, FramedFileDataset
 from medio.metadata.metadata import MetaData
 
@@ -31,7 +30,7 @@ class PdcmIO:
     @staticmethod
     def read_dcm_dir(input_dir, globber='*'):
         """Reads a 3D dicom image: input path can be a file or directory (DICOM series)"""
-        # find all dicom files within the specified folder, read every file separately sort them by InstanceNumber
+        # find all dicom files within the specified folder, read every file separately and sort them by InstanceNumber
         files = list(Path(input_dir).glob(globber))
         if len(files) == 0:
             raise IOError(f'Received an empty directory: {str(input_dir)}')
@@ -52,6 +51,7 @@ class PdcmIO:
         Writes a dicom single file image using template file, without the intensity transformation from template dataset
         :param img_arr: numpy array of the image to be saved, should be in the same orientation as template_filename
         :param template_filename: the single dicom scan whose meta data is used
+        :param keep_rescale: whether to keep intensity rescale values
         """
         ds = pydicom.dcmread(template_filename)
         ds = convert_ds(ds)

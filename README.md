@@ -9,7 +9,7 @@ It includes translation between the metadata conventions, reorientations, affine
 Download the [whl file](https://drive.google.com/open?id=1cr8Tv_zNCSBN5ccWzLxVqmiK4VKueINt)
 and install it with:
 ```
-(<env-name>) C:\Users\<username>\Downloads>pip install medio-0.0-py3-none-any.whl
+(<env-name>) C:\Users\<username>\Downloads>pip install medio-<m1>.<m2>.<m3>-py3-none-any.whl
 ```
 This will install the medio python package and its dependencies in your environment.
 

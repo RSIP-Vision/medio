@@ -3,9 +3,8 @@ import numpy as np
 from pathlib import Path
 from typing import Union
 from medio.metadata.affine import Affine
-from medio.metadata.itk_orientation import itk_orientation_code, codes_str_dict
 from medio.metadata.metadata import MetaData
-from medio.backends.pdcm_io import PdcmIO
+from medio.metadata.itk_orientation import itk_orientation_code, codes_str_dict
 
 
 class ItkIO:
@@ -15,7 +14,7 @@ class ItkIO:
     coord_sys = 'itk'
 
     @staticmethod
-    def read_img(input_path, desired_axcodes=None, image_type=image_type):
+    def read_img(input_path, desired_axcodes=None, pixel_type=pixel_type, image_type=image_type):
         """
         The main reader function, reads images and performs reorientation and unpacking
         :param input_path: path of image file or directory containing dicom series
@@ -26,7 +25,7 @@ class ItkIO:
         """
         input_path = Path(input_path)
         if input_path.is_file():
-            img = ItkIO.read_img_file(str(input_path), pixel_type=ItkIO.pixel_type)
+            img = ItkIO.read_img_file(str(input_path), pixel_type=pixel_type)
         elif input_path.is_dir():
             img = ItkIO.read_dcm_dir(str(input_path), image_type=image_type)
         else:
@@ -38,10 +37,23 @@ class ItkIO:
         return image_np, metadata
 
     @staticmethod
+    def save_img(filename, image_np, metadata, use_original_ornt=True, dtype='int16'):
+        # TODO: add saving as dicom directory
+        if ItkIO.is_dcm_file(filename):
+            image_np, dtype = ItkIO.prepare_dcm_image(image_np)
+
+        metadata.convert(ItkIO.coord_sys)
+        image = ItkIO.pack2img(image_np, metadata.affine, dtype=dtype)
+        if use_original_ornt:
+            image, _ = ItkIO.reorient(image, metadata.orig_ornt)
+
+        Path(filename).parent.mkdir(parents=True, exist_ok=True)
+        ItkIO.save_img_file(image, filename)
+
+    @staticmethod
     def prepare_dcm_image(image_np):
         """Change image_np to correct data type for saving a single dicom file"""
-
-        # if the image is 2d it can be also signed
+        # if the image is 2d it can be signed
         image_np_sq = np.squeeze(image_np)
         if image_np_sq.ndim == 2:
             return image_np_sq, image_np_sq.dtype
@@ -58,23 +70,16 @@ class ItkIO:
                 return arr, dtype
 
         # TODO: may be solved with rescale and intercept tags in dicom
-        raise NotImplementedError('Saving dicom files is currently supported only for images with integer nonnegative '
-                                  'values')
+        raise NotImplementedError('Saving single dicom files with ItkIO is currently supported only for \n'
+                                  '1. 2d images, or \n'
+                                  '2. 3d images with integer nonnegative values (np.uint8, np.uint16)\n'
+                                  'Try to save a dicom directory or use PdcmIO.save_arr2dcm_file')
 
     @staticmethod
-    def save_img(filename, image_np, metadata, use_original_ornt=True, dicom_template_file=None, dtype='int16'):
-        # TODO: add saving as dicom directory
-        metadata.convert(ItkIO.coord_sys)
-        if filename.endswith('.dcm'):
-            image_np, dtype = ItkIO.prepare_dcm_image(image_np)
-        image = ItkIO.pack2img(image_np, metadata.affine, dtype=dtype)
-        if use_original_ornt:
-            image, _ = ItkIO.reorient(image, metadata.orig_ornt)
-        Path(filename).parent.mkdir(parents=True, exist_ok=True)
-        if dicom_template_file is None:
-            ItkIO.save_img_file(image, filename)
-        else:
-            ItkIO.save_img_file_dcm(filename, image, dicom_template_file)
+    def is_dcm_file(filename, check_exist=False):
+        if check_exist and not Path(filename).is_file():
+            return False
+        return filename.endswith('.dcm') or filename.endswith('.dicom')
 
     @staticmethod
     def read_img_file(filename, pixel_type=pixel_type):
@@ -100,11 +105,6 @@ class ItkIO:
         # writer.SetInput(image)
         # writer.Update()
         itk.imwrite(image, filename)
-
-    @staticmethod
-    def save_img_file_dcm(filename, img, dicom_template_file):
-        image_np = itk.GetArrayViewFromImage(img)
-        PdcmIO.save_arr2dcm_file(filename, image_np, dicom_template_file)
 
     @staticmethod
     def itk_img_to_array(img_itk):
@@ -180,7 +180,7 @@ class ItkIO:
         return itk_img
 
     @staticmethod
-    def reorient(img, desired_orientation: Union[str, tuple, int, None]):
+    def reorient(img, desired_orientation: Union[int, tuple, str, None]):
         if desired_orientation is None:
             return img, None
 
