@@ -16,7 +16,7 @@ def is_nifti(filename, check_exist=True):
     return False
 
 
-def read_img(input_path, desired_ornt=None, backend=None):
+def read_img(input_path, desired_ornt=None, backend=None, **kwargs):
     """
     Read medical image with nibabel or itk
     :param input_path: str or os.PathLike, the input path of image file or a directory containing dicom series
@@ -40,9 +40,9 @@ def read_img(input_path, desired_ornt=None, backend=None):
             reader = itk_reader
         elif backend in ('pdcm', 'pydicom'):
             if desired_ornt is not None:
-                raise warn(f'Pydicom reader backend does not support reorientation. The passed desired orientation '
-                           f'{desired_ornt} will be ignored')
-            np_image, metadata = pdcm_reader(input_path)
+                warn(f'Pydicom reader backend does not support reorientation. The passed desired orientation '
+                     f'{desired_ornt} will be ignored')
+            np_image, metadata = pdcm_reader(input_path, **kwargs)
             return np_image, metadata
         else:
             raise ValueError('The backend argument must be one of: \'itk\', \'nib\', \'pdcm\' (or \'pydicom\'), None')
@@ -50,7 +50,7 @@ def read_img(input_path, desired_ornt=None, backend=None):
     if reader == nib_reader:
         desired_ornt = inv_axcodes(desired_ornt)
 
-    np_image, metadata = reader(input_path, desired_axcodes=desired_ornt)
+    np_image, metadata = reader(input_path, desired_axcodes=desired_ornt, **kwargs)
     return np_image, metadata
 
 

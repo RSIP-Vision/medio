@@ -14,7 +14,7 @@ class NibIO:
         orig_ornt_str = ''.join(nib.aff2axcodes(img_struct.affine))
         if desired_axcodes is not None:
             img_struct = NibIO.reorient(img_struct, desired_axcodes)
-        img = img_struct.get_data().astype(dtype)
+        img = img_struct.get_fdata().astype(dtype)
         affine = Affine(img_struct.affine)
         metadata = MetaData(affine=affine, orig_ornt=orig_ornt_str, coord_sys=NibIO.coord_sys)
         return img, metadata

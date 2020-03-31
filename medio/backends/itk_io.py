@@ -38,9 +38,9 @@ class ItkIO:
         return image_np, metadata
 
     @staticmethod
-    def prepare_dcm_image(image_np):
+    def prepare_dcm_image(image_np, dtype=None):
         """Change image_np to correct data type for saving dicom"""
-        dcm_dtypes = ['uint8', 'uint16']
+        dcm_dtypes = [np.uint8, np.uint16]
 
         if image_np.dtype in dcm_dtypes:
             return image_np, image_np.dtype
@@ -71,7 +71,7 @@ class ItkIO:
 
     @staticmethod
     def read_img_file(filename, pixel_type=pixel_type):
-        image = itk.imread(filename, pixel_type)
+        image = itk.imread(filename, pixel_type, fallback_only=True)
         return image
 
     @staticmethod
@@ -145,7 +145,7 @@ class ItkIO:
         """
         Read a dicom directory. If there is more than one series in the directory an error is raised
         Shorter option for a single series:
-        >>> itk.read([filename0, filename1, ...])
+        >>> itk.imread([filename0, filename1, ...])
         It does not change the order of the slices
         """
         names_generator = itk.GDCMSeriesFileNames.New()
