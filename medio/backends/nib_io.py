@@ -1,4 +1,5 @@
 import nibabel as nib
+import numpy as np
 from pathlib import Path
 from typing import Union
 from medio.metadata.metadata import MetaData
@@ -9,13 +10,24 @@ class NibIO:
     coord_sys = 'nib'
 
     @staticmethod
-    def read_img(input_path, desired_axcodes=None, dtype='int16'):
+    def read_img(input_path, desired_axcodes=None, dtype='int16', unravel=False):
         """Reads a NIFTI file"""
         img_struct = nib.load(input_path)
         orig_ornt_str = ''.join(nib.aff2axcodes(img_struct.affine))
         if desired_axcodes is not None:
             img_struct = NibIO.reorient(img_struct, desired_axcodes)
-        img = img_struct.get_fdata().astype(dtype)
+        try:
+            img = img_struct.get_fdata()
+        except TypeError:
+            img = np.asanyarray(img_struct.dataobj)
+        try:
+            img = img.astype(dtype)
+        except TypeError:
+            if unravel:
+                try:
+                    img = NibIO.unravel_array(img)
+                except TypeError:
+                    pass
         affine = Affine(img_struct.affine)
         metadata = MetaData(affine=affine, orig_ornt=orig_ornt_str, coord_sys=NibIO.coord_sys)
         return img, metadata
@@ -50,3 +62,13 @@ class NibIO:
             ornt_tform = nib.orientations.ornt_transform(start_ornt, end_ornt)
             img_struct = img_struct.as_reoriented(ornt_tform)
         return img_struct
+
+    @staticmethod
+    def unravel_array(array):
+        """Simplify array dtype if applicable. For example, if the array if of RGB dtype:
+        np.dtype([('R', 'uint8'), ('G', 'uint8'), ('B', 'uint8')])
+        Convert it into an array with dtype 'uint8' and 3 channels for RGB in an additional last dimension"""
+        dtype = array.dtype
+        if not (hasattr(dtype, '__len__') and len(dtype) > 1):
+            return array
+        return np.stack([array[field] for field in dtype.fields], axis=-1)
