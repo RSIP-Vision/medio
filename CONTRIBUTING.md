@@ -82,3 +82,10 @@ Key features, pros & cons:
 
 # Tests
 - (add dataset sources)
+
+# Distribution
+Build the whl file with the following command (in the cmd/terminal): 
+```
+(<env-name>) C:\...\medio>python setup.py sdist bdist_wheel
+```
+Make sure you are in the project's root - where the setup.py file is located.
