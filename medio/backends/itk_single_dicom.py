@@ -2,7 +2,7 @@ import itk
 import numpy as np
 
 
-img = itk.GetImageFromArray(np.zeros((30, 30, 30), dtype='uint16'))
+img = itk.image_from_array(np.zeros((30, 30, 30), dtype='uint16'))
 mdict = img.GetMetaDataDictionary()
 
 key_intercept = "0028|1052"
