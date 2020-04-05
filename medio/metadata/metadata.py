@@ -31,11 +31,11 @@ class MetaData:
 
     def convert(self, dest_coord_sys):
         """
-        Converts the metadata coordinate system inplace to dest_coord_sys. Affects only affine and orig_ornt
+        Converts the metadata coordinate system inplace to dest_coord_sys. Affects affine, ornt and orig_ornt
         :param dest_coord_sys: the destination coordinate system - 'itk' or 'nib' (nifti)
         """
         if dest_coord_sys != self.coord_sys:
-            self.affine, self.orig_ornt = convert(self.affine, self.orig_ornt)
+            self.affine, self._ornt, self.orig_ornt = convert(self.affine, self._ornt, self.orig_ornt)
             self.coord_sys = dest_coord_sys
 
     def get_ornt(self):

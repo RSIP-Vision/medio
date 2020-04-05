@@ -53,15 +53,20 @@ def inv_axcodes(axcodes):
 def convert_affine(affine):
     # conversion matrix of the affine from itk to nibabel and vice versa
     convert_aff_mat = np.diag([-1, -1, 1, 1])
+    # for 2d image:
+    if affine.shape[0] == 3:
+        convert_aff_mat = np.diag([-1, -1, 1])
     new_affine = convert_aff_mat @ affine
     if isinstance(affine, Affine):
         new_affine = Affine(new_affine)
     return new_affine
 
 
-def convert(affine, axcodes):
-    """Convert affine and meta data dictionary (original orientation) from nibabel to itk and vice versa"""
+def convert(affine, *axcodes):
+    """Convert affine and orientations (original and current orientations) from nibabel to itk and vice versa"""
     new_affine = convert_affine(affine)
-    new_axcodes = inv_axcodes(axcodes)
+    new_axcodes = []
+    for axcode in axcodes:
+        new_axcodes += [inv_axcodes(axcode)]
 
-    return new_affine, new_axcodes
+    return (new_affine, *new_axcodes)
