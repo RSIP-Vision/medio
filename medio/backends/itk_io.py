@@ -14,7 +14,7 @@ class ItkIO:
     coord_sys = 'itk'
 
     @staticmethod
-    def read_img(input_path, desired_axcodes=None, image_type=image_type, dtype='int16'):
+    def read_img(input_path, desired_axcodes=None, image_type=image_type, dtype='int16', **kwargs):
         """
         The main reader function, reads images and performs reorientation and unpacking
         :param input_path: path of image file or directory containing dicom series
@@ -26,7 +26,7 @@ class ItkIO:
         """
         input_path = Path(input_path)
         if input_path.is_file():
-            img = ItkIO.read_img_file(str(input_path))
+            img = ItkIO.read_img_file(str(input_path), **kwargs)
         elif input_path.is_dir():
             img = ItkIO.read_dcm_dir(str(input_path), image_type=image_type)
         else:
@@ -87,7 +87,7 @@ class ItkIO:
         return filename.endswith('.dcm') or filename.endswith('.dicom')
 
     @staticmethod
-    def read_img_file(filename, pixel_type=pixel_type, fallback_only=True):
+    def read_img_file(filename, pixel_type=pixel_type, fallback_only=False):
         image = itk.imread(filename, pixel_type, fallback_only=fallback_only)
         return image
 
