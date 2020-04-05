@@ -61,7 +61,7 @@ class ItkIO:
         image_np_sq = np.squeeze(image_np)
         if image_np_sq.ndim == 2:
             image_np = image_np_sq[..., np.newaxis]
-            return image_np, image_np.dtype
+            return image_np, np.int16
 
         # if it is 3d, the supported data types are:
         dcm_dtypes = [np.uint8, np.uint16]
