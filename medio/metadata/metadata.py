@@ -45,7 +45,7 @@ class MetaData:
         elif self.coord_sys == 'itk':
             ornt_tup = inv_axcodes(aff2axcodes(convert_affine(self.affine)))
         else:
-            raise Exception('Unknown coord_sys:', self.coord_sys)
+            raise ValueError('Unknown coord_sys:', self.coord_sys)
         ornt_str = ''.join(ornt_tup)
         return ornt_str
 
@@ -53,6 +53,7 @@ class MetaData:
     def ornt(self):
         if self._ornt is None:
             self._ornt = self.get_ornt()
+            # TODO: if self.orig_ornt is also None, maybe update it now?
         return self._ornt
 
     @property

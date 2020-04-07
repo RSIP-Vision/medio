@@ -118,7 +118,7 @@ class ItkIO:
 
     @staticmethod
     def itk_img_to_array(img_itk):
-        """Swap the axes to make the third axis the z axis (inferior - superior) in RAS orientation"""
+        """Swap the axes to make the third axis the z axis (inferior - superior) in RAI orientation"""
         img_array = itk.array_from_image(img_itk).copy().T  # the transpose here is equivalent to keep_axes=True
         return img_array
 
