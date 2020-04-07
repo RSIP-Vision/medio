@@ -156,6 +156,23 @@ class ItkIO:
         return image
 
     @staticmethod
+    def reorient(img, desired_orientation: Union[int, tuple, str, None]):
+        if desired_orientation is None:
+            return img, None
+
+        image_type = type(img)
+        orient = itk.OrientImageFilter[image_type, image_type].New()
+        orient.UseImageDirectionOn()
+        orient.SetInput(img)
+        if isinstance(desired_orientation, (str, tuple)):
+            desired_orientation = itk_orientation_code(desired_orientation)
+        orient.SetDesiredCoordinateOrientation(desired_orientation)
+        orient.Update()
+        reoriented_itk_img = orient.GetOutput()
+        original_orientation_code = orient.GetGivenCoordinateOrientation()
+        return reoriented_itk_img, original_orientation_code
+
+    @staticmethod
     def read_dcm_dir(dirname, image_type=image_type):
         """
         Read a dicom directory. If there is more than one series in the directory an error is raised
@@ -187,18 +204,87 @@ class ItkIO:
         return itk_img
 
     @staticmethod
-    def reorient(img, desired_orientation: Union[int, tuple, str, None]):
-        if desired_orientation is None:
-            return img, None
+    def make_empty_dir(dir_path):
+        """Make an empty directory. If it exists - check that it is empty"""
+        # TODO: consider moving to a general utils module
+        try:
+            dir_path.mkdir(parents=True, exist_ok=False)
+        except FileExistsError:
+            # the directory exists
+            try:
+                next(dir_path.glob('*'))
+            except StopIteration:
+                pass  # the directory exists but empty - ok
+            else:
+                raise FileExistsError(f'The directory {str(dir_path)} is not empty')
 
-        image_type = type(img)
-        orient = itk.OrientImageFilter[image_type, image_type].New()
-        orient.UseImageDirectionOn()
-        orient.SetInput(img)
-        if isinstance(desired_orientation, (str, tuple)):
-            desired_orientation = itk_orientation_code(desired_orientation)
-        orient.SetDesiredCoordinateOrientation(desired_orientation)
-        orient.Update()
-        reoriented_itk_img = orient.GetOutput()
-        original_orientation_code = orient.GetGivenCoordinateOrientation()
-        return reoriented_itk_img, original_orientation_code
+    @staticmethod
+    def save_dcm_dir(dirname, image_np, metadata, use_original_ornt=True, dtype='int16'):
+        """Save a 3d numpy array image_np as a dicom series of 2d dicom slices in the directory dirname"""
+        image = ItkIO.prepare_image(image_np, metadata, use_original_ornt, dtype)
+        image_type = type(image)
+        _, (pixel_type, _) = itk.template(image)
+        image2d_type = itk.Image[pixel_type, 2]
+        writer = itk.ImageSeriesWriter[image_type, image2d_type].New()
+        path = Path(dirname)
+        ItkIO.make_empty_dir(path)
+        # the number of slices:
+        n = image.GetLargestPossibleRegion().GetSize().GetElement(2)
+        filenames = [str(path / f'IM{i}.dcm') for i in range(1, n + 1)]
+        writer.SetFileNames(filenames)
+        # necessary metadata:
+        metadicts = ItkIO.dcm_metadata(image, n)
+        # image.SetMetaDataDictionary(mdict)
+        # writer.SetMetaDataDictionary(mdict)  # shared properties. TODO: add more
+        metadict_vec = itk.vector[itk.MetaDataDictionary](metadicts)
+        writer.SetMetaDataDictionaryArray(metadict_vec)  # TODO: add per slice metadata (position, instance number, ...)
+        dicom_io = itk.GDCMImageIO.New()
+        dicom_io.KeepOriginalUIDOn()
+        writer.SetImageIO(dicom_io)
+        writer.SetInput(image)
+        writer.Update()
+
+    @staticmethod
+    def dcm_metadata(image, n):
+        mdict = itk.MetaDataDictionary()
+
+        # Shared properties for all the slices:
+        # TODO: use better UIDs...
+        # Series Instance UID
+        mdict['0020|000e'] = '1.3.6.1.4.1.5962.99.1.3721201789.257940085.1558499395709.4.0'
+        # Study Instance UID
+        mdict['0020|000d'] = '1.2.826.0.1.3680043.2.1125.1.56230505590330521811301239661751799'
+
+        # Pixel Spacing
+        mdict['0028|0030'] = f'{image.GetSpacing()[0]}\\{image.GetSpacing()[1]}'  # TODO: is this tag necessary?
+        # Slice Thickness
+        mdict['0018|0050'] = str(image.GetSpacing()[2])
+        # Spacing Between Slices
+        # TODO: duplicate slice thickness
+        mdict['0018|0088'] = str(image.GetSpacing()[2])
+        # Image Orientation (Patient)
+        orientation_str = '\\'.join([str(image.GetDirection().GetVnlMatrix().get(i, j))
+                                     for j in range(2) for i in range(3)])
+        mdict['0020|0037'] = orientation_str
+
+        # Number of Frames
+        mdict['0028|0008'] = '1'
+        # Number of Slices
+        mdict['0054|0081'] = str(n)
+
+        mdict_list = []
+        # Per slice properties:
+        for i in range(n):
+            # copy the shared properties dict:
+            mdict_i = itk.MetaDataDictionary(mdict)
+            # Instance Number
+            mdict_i['0020|0013'] = str(i + 1)
+            # Image Position (Patient)
+            position = image.TransformIndexToPhysicalPoint([0, 0, i])
+            position_str = '\\'.join([str(position[i]) for i in range(3)])
+            mdict_i['0020|0032'] = position_str
+
+            mdict_list += [mdict_i]
+
+        return mdict_list
+
