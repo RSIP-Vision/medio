@@ -5,21 +5,22 @@ from medio.utils.explicit_slicing import explicit_inds
 
 
 class MedImg:
-    def __init__(self, np_image, metadata, filename=None):
+    def __init__(self, np_image, metadata, filename=None, **kwargs):
         """
         Class for a single medical image, represented by numpy array and metadata object - image affine, original
         orientation and coordinate system. The class allows performing operations on the image with respective update of
         the metadata (mainly affine).
         The class can be instantiated also with a filename:
         >>> MedImg(None, None, '../scan1.mhd')
+        With possible kwargs for the reader.
         """
         if filename is not None:
-            np_image, metadata = read_img(filename)
+            np_image, metadata = read_img(filename, **kwargs)
         self.np_image = np_image
         self.metadata = metadata
 
-    def save(self, filename):
-        save_img(filename, self.np_image, self.metadata)
+    def save(self, filename, **kwargs):
+        save_img(filename, self.np_image, self.metadata, **kwargs)
 
     def __getitem__(self, item):
         """
