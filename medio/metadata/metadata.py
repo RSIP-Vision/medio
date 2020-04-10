@@ -43,6 +43,8 @@ class MetaData:
         if self.coord_sys == 'nib':
             ornt_tup = aff2axcodes(self.affine)
         elif self.coord_sys == 'itk':
+            # TODO: consider using orientation conversion dict from nib to itk with something like
+            #  labels=list(zip('RAI', 'LPS'))
             ornt_tup = inv_axcodes(aff2axcodes(convert_affine(self.affine)))
         else:
             raise ValueError('Unknown coord_sys:', self.coord_sys)
@@ -53,7 +55,9 @@ class MetaData:
     def ornt(self):
         if self._ornt is None:
             self._ornt = self.get_ornt()
-            # TODO: if self.orig_ornt is also None, maybe update it now?
+            # if self.orig_ornt is also None, the image was not reoriented and the original orientation is the same
+            if self.orig_ornt is None:
+                self.orig_ornt = self._ornt
         return self._ornt
 
     @property
