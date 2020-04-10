@@ -1,8 +1,7 @@
 from pathlib import Path
 
 
-def is_nifti(filename, check_exist=True):
-    suffixes = ['.nii.gz', '.nii']
+def is_file_suffix(filename, *suffixes, check_exist=True):
     if check_exist and not Path(filename).is_file():
         return False
     for suf in suffixes:
@@ -11,14 +10,17 @@ def is_nifti(filename, check_exist=True):
     return False
 
 
-def is_dcm_file(filename, check_exist=False):
-    if check_exist and not Path(filename).is_file():
-        return False
-    return str(filename).endswith('.dcm') or str(filename).endswith('.dicom')
+def is_nifti(filename, check_exist=True):
+    return is_file_suffix(filename, '.nii.gz', '.nii', check_exist=check_exist)
+
+
+def is_dicom(filename, check_exist=True):
+    return is_file_suffix(filename, '.dcm', '.dicom', check_exist=check_exist)
 
 
 def make_empty_dir(dir_path):
     """Make an empty directory. If it exists - check that it is empty"""
+    dir_path = Path(dir_path)
     try:
         dir_path.mkdir(parents=True, exist_ok=False)
     except FileExistsError:

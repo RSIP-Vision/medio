@@ -5,7 +5,7 @@ from typing import Union
 from medio.metadata.affine import Affine
 from medio.metadata.metadata import MetaData
 from medio.metadata.itk_orientation import itk_orientation_code, codes_str_dict
-from medio.utils.files import is_dcm_file, make_empty_dir
+from medio.utils.files import is_dicom, make_empty_dir
 
 
 class ItkIO:
@@ -40,7 +40,7 @@ class ItkIO:
 
     @staticmethod
     def save_img(filename, image_np, metadata, use_original_ornt=True, dtype='int16', is_vector=False):
-        if is_dcm_file(filename):
+        if is_dicom(filename, check_exist=False):
             image_np, dtype = ItkIO.prepare_dcm_image(image_np)
         image = ItkIO.prepare_image(image_np, metadata, use_original_ornt, dtype, is_vector)
         Path(filename).parent.mkdir(parents=True, exist_ok=True)
@@ -207,11 +207,10 @@ class ItkIO:
         _, (pixel_type, _) = itk.template(image)
         image2d_type = itk.Image[pixel_type, 2]
         writer = itk.ImageSeriesWriter[image_type, image2d_type].New()
-        path = Path(dirname)
-        make_empty_dir(path)
+        make_empty_dir(dirname)
         # the number of slices:
         n = image.GetLargestPossibleRegion().GetSize().GetElement(2)
-        filenames = [str(path / f'IM{i}.dcm') for i in range(1, n + 1)]
+        filenames = [str(Path(dirname) / f'IM{i}.dcm') for i in range(1, n + 1)]
         writer.SetFileNames(filenames)
         # necessary metadata:
         metadicts = ItkIO.dcm_metadata(image, n)
