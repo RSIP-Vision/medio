@@ -17,7 +17,7 @@ class MetaData:
         self.affine = affine
         self.orig_ornt = orig_ornt
         self._ornt = None
-        if coord_sys not in ['itk', 'nib']:
+        if coord_sys not in ('itk', 'nib'):
             raise ValueError('Metadata coord_sys must be \'itk\' or \'nib\'')
         self.coord_sys = coord_sys
 

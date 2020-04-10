@@ -38,18 +38,18 @@ class ItkIO:
         return image_np, metadata
 
     @staticmethod
-    def save_img(filename, image_np, metadata, use_original_ornt=True, dtype='int16'):
+    def save_img(filename, image_np, metadata, use_original_ornt=True, dtype='int16', is_vector=False):
         if ItkIO.is_dcm_file(filename):
             image_np, dtype = ItkIO.prepare_dcm_image(image_np)
-        image = ItkIO.prepare_image(image_np, metadata, use_original_ornt, dtype)
+        image = ItkIO.prepare_image(image_np, metadata, use_original_ornt, dtype, is_vector)
         Path(filename).parent.mkdir(parents=True, exist_ok=True)
         ItkIO.save_img_file(image, filename)
 
     @staticmethod
-    def prepare_image(image_np, metadata, use_original_ornt, dtype):
+    def prepare_image(image_np, metadata, use_original_ornt, dtype, is_vector=False):
         """Prepare image for saving"""
         metadata.convert(ItkIO.coord_sys)
-        image = ItkIO.pack2img(image_np, metadata.affine, dtype)
+        image = ItkIO.pack2img(image_np, metadata.affine, dtype, is_vector)
         if use_original_ornt:
             image, _ = ItkIO.reorient(image, metadata.orig_ornt)
         return image
@@ -84,7 +84,7 @@ class ItkIO:
     def is_dcm_file(filename, check_exist=False):
         if check_exist and not Path(filename).is_file():
             return False
-        return filename.endswith('.dcm') or filename.endswith('.dicom')
+        return str(filename).endswith('.dcm') or str(filename).endswith('.dicom')
 
     @staticmethod
     def read_img_file(filename, pixel_type=pixel_type, fallback_only=False):
@@ -123,8 +123,9 @@ class ItkIO:
         return img_array
 
     @staticmethod
-    def array_to_itk_img(img_array):
-        img_itk = itk.image_from_array(img_array.T.copy())  # copy is crucial for the ordering
+    def array_to_itk_img(img_array, is_vector=False):
+        """Set is_vector to True for vector images, e.g. RGB"""
+        img_itk = itk.image_from_array(img_array.T.copy(), is_vector=is_vector)  # copy is crucial for the ordering
         return img_itk
 
     @staticmethod
@@ -138,8 +139,8 @@ class ItkIO:
         return image_np, affine
 
     @staticmethod
-    def pack2img(image_np, affine, dtype='int16'):
-        image = ItkIO.array_to_itk_img(image_np.astype(dtype))
+    def pack2img(image_np, affine, dtype='int16', is_vector=False):
+        image = ItkIO.array_to_itk_img(image_np.astype(dtype), is_vector)
         direction_arr, spacing, origin = affine.direction, affine.spacing, affine.origin
 
         # setting metadata
