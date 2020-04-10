@@ -5,6 +5,7 @@ from typing import Union
 from medio.metadata.affine import Affine
 from medio.metadata.metadata import MetaData
 from medio.metadata.itk_orientation import itk_orientation_code, codes_str_dict
+from medio.utils.files import is_dcm_file, make_empty_dir
 
 
 class ItkIO:
@@ -39,7 +40,7 @@ class ItkIO:
 
     @staticmethod
     def save_img(filename, image_np, metadata, use_original_ornt=True, dtype='int16', is_vector=False):
-        if ItkIO.is_dcm_file(filename):
+        if is_dcm_file(filename):
             image_np, dtype = ItkIO.prepare_dcm_image(image_np)
         image = ItkIO.prepare_image(image_np, metadata, use_original_ornt, dtype, is_vector)
         Path(filename).parent.mkdir(parents=True, exist_ok=True)
@@ -79,12 +80,6 @@ class ItkIO:
                                   '1. 2d images, or \n'
                                   '2. 3d images with integer nonnegative values (np.uint8, np.uint16)\n'
                                   'Try to save a dicom directory or use PdcmIO.save_arr2dcm_file')
-
-    @staticmethod
-    def is_dcm_file(filename, check_exist=False):
-        if check_exist and not Path(filename).is_file():
-            return False
-        return str(filename).endswith('.dcm') or str(filename).endswith('.dicom')
 
     @staticmethod
     def read_img_file(filename, pixel_type=pixel_type, fallback_only=False):
@@ -205,21 +200,6 @@ class ItkIO:
         return itk_img
 
     @staticmethod
-    def make_empty_dir(dir_path):
-        """Make an empty directory. If it exists - check that it is empty"""
-        # TODO: consider moving to a general utils module
-        try:
-            dir_path.mkdir(parents=True, exist_ok=False)
-        except FileExistsError:
-            # the directory exists
-            try:
-                next(dir_path.glob('*'))
-            except StopIteration:
-                pass  # the directory exists but empty - ok
-            else:
-                raise FileExistsError(f'The directory {str(dir_path)} is not empty')
-
-    @staticmethod
     def save_dcm_dir(dirname, image_np, metadata, use_original_ornt=True, dtype='int16'):
         """Save a 3d numpy array image_np as a dicom series of 2d dicom slices in the directory dirname"""
         image = ItkIO.prepare_image(image_np, metadata, use_original_ornt, dtype)
@@ -228,7 +208,7 @@ class ItkIO:
         image2d_type = itk.Image[pixel_type, 2]
         writer = itk.ImageSeriesWriter[image_type, image2d_type].New()
         path = Path(dirname)
-        ItkIO.make_empty_dir(path)
+        make_empty_dir(path)
         # the number of slices:
         n = image.GetLargestPossibleRegion().GetSize().GetElement(2)
         filenames = [str(path / f'IM{i}.dcm') for i in range(1, n + 1)]

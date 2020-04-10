@@ -1,19 +1,9 @@
-from pathlib import Path
 from warnings import warn
 from medio.backends.nib_io import NibIO
 from medio.backends.itk_io import ItkIO
 from medio.backends.pdcm_io import PdcmIO
 from medio.metadata.convert_nib_itk import inv_axcodes
-
-
-def is_nifti(filename, check_exist=True):
-    suffixes = ['.nii.gz', '.nii']
-    if check_exist and not Path(filename).is_file():
-        return False
-    for suf in suffixes:
-        if str(filename).endswith(suf):
-            return True
-    return False
+from medio.utils.files import is_nifti
 
 
 def read_img(input_path, desired_ornt=None, backend=None, **kwargs):
