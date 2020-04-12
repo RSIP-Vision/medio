@@ -76,7 +76,6 @@ class ItkIO:
             if np.array_equal(arr, image_np):
                 return arr, dtype
 
-        # TODO: may be solved with rescale and intercept tags in dicom
         raise NotImplementedError('Saving single dicom files with ItkIO is currently supported only for \n'
                                   '1. 2d images, or \n'
                                   '2. 3d images with integer nonnegative values (np.uint8, np.uint16)\n'
