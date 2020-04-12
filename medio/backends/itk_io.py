@@ -45,7 +45,7 @@ class ItkIO:
             image_np, dtype = ItkIO.prepare_dcm_image(image_np)
         image = ItkIO.prepare_image(image_np, metadata, use_original_ornt, dtype, is_vector)
         Path(filename).parent.mkdir(parents=True, exist_ok=True)
-        ItkIO.save_img_file(image, filename)
+        ItkIO.save_img_file(image, str(filename))
 
     @staticmethod
     def prepare_image(image_np, metadata, use_original_ornt, dtype, is_vector=False):
