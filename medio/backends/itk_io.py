@@ -2,6 +2,7 @@ import itk
 import numpy as np
 from pathlib import Path
 from typing import Union
+import uuid
 from medio.metadata.affine import Affine
 from medio.metadata.metadata import MetaData
 from medio.metadata.itk_orientation import itk_orientation_code, codes_str_dict
@@ -83,6 +84,7 @@ class ItkIO:
 
     @staticmethod
     def read_img_file(filename, pixel_type=pixel_type, fallback_only=False):
+        """Common pixel types: itk.SS (int16), itk.US (uint16), itk.UC (uint8)"""
         image = itk.imread(filename, pixel_type, fallback_only=fallback_only)
         return image
 
@@ -200,7 +202,7 @@ class ItkIO:
         return itk_img
 
     @staticmethod
-    def save_dcm_dir(dirname, image_np, metadata, use_original_ornt=True, dtype='int16'):
+    def save_dcm_dir(dirname, image_np, metadata, use_original_ornt=True, dtype='int16', **kwargs):
         """Save a 3d numpy array image_np as a dicom series of 2d dicom slices in the directory dirname"""
         image = ItkIO.prepare_image(image_np, metadata, use_original_ornt, dtype)
         image_type = type(image)
@@ -208,16 +210,11 @@ class ItkIO:
         image2d_type = itk.Image[pixel_type, 2]
         writer = itk.ImageSeriesWriter[image_type, image2d_type].New()
         make_empty_dir(dirname)
-        # the number of slices:
-        n = image.GetLargestPossibleRegion().GetSize().GetElement(2)
-        filenames = [str(Path(dirname) / f'IM{i}.dcm') for i in range(1, n + 1)]
+        # Generate necessary metadata and filenames per slice:
+        mdict_list, filenames = ItkIO.dcm_metadata(image, dirname, **kwargs)
+        metadict_vec = itk.vector[itk.MetaDataDictionary](mdict_list)
+        writer.SetMetaDataDictionaryArray(metadict_vec)
         writer.SetFileNames(filenames)
-        # necessary metadata:
-        metadicts = ItkIO.dcm_metadata(image, n)
-        # image.SetMetaDataDictionary(mdict)
-        # writer.SetMetaDataDictionary(mdict)  # shared properties. TODO: add more
-        metadict_vec = itk.vector[itk.MetaDataDictionary](metadicts)
-        writer.SetMetaDataDictionaryArray(metadict_vec)  # TODO: add per slice metadata (position, instance number, ...)
         dicom_io = itk.GDCMImageIO.New()
         dicom_io.KeepOriginalUIDOn()
         writer.SetImageIO(dicom_io)
@@ -225,22 +222,32 @@ class ItkIO:
         writer.Update()
 
     @staticmethod
-    def dcm_metadata(image, n):
+    def dcm_metadata(image, dirname, pattern='IM{}.dcm', metadata_dict=None):
+        """
+        Return dicom series metadata per slice and filenames
+        :param image: the full itk image to be saved as dicom series
+        :param dirname: the directory name
+        :param pattern: pattern for the filenames, including a placeholder ('{}') for the slice number
+        :param metadata_dict: dictionary of metadata for adding tags or overriding the default values. For example,
+        metadata_dict = {'0008|0060': 'US'} will override the default 'CT' modality and set it to 'US' (ultrasound)
+        :return: metadata dictionaries per slice, slice filenames
+        """
+        # The number of slices
+        n = image.GetLargestPossibleRegion().GetSize().GetElement(2)
+
+        # Shared properties for all the n slices:
         mdict = itk.MetaDataDictionary()
 
-        # Shared properties for all the slices:
-        # TODO: use better UIDs...
         # Series Instance UID
-        mdict['0020|000e'] = '1.3.6.1.4.1.5962.99.1.3721201789.257940085.1558499395709.4.0'
+        mdict['0020|000e'] = str(uuid.uuid1())
         # Study Instance UID
-        mdict['0020|000d'] = '1.2.826.0.1.3680043.2.1125.1.56230505590330521811301239661751799'
+        mdict['0020|000d'] = str(uuid.uuid1())
 
-        # Pixel Spacing
-        mdict['0028|0030'] = f'{image.GetSpacing()[0]}\\{image.GetSpacing()[1]}'  # TODO: is this tag necessary?
+        # Pixel Spacing - TODO: maybe not necessary? automatically saved
+        mdict['0028|0030'] = f'{image.GetSpacing()[0]}\\{image.GetSpacing()[1]}'
         # Slice Thickness
         mdict['0018|0050'] = str(image.GetSpacing()[2])
-        # Spacing Between Slices
-        # TODO: duplicate slice thickness
+        # Spacing Between Slices - TODO: it duplicates slice thickness
         mdict['0018|0088'] = str(image.GetSpacing()[2])
         # Image Orientation (Patient)
         orientation_str = '\\'.join([str(image.GetDirection().GetVnlMatrix().get(i, j))
@@ -251,9 +258,17 @@ class ItkIO:
         mdict['0028|0008'] = '1'
         # Number of Slices
         mdict['0054|0081'] = str(n)
+        # Modality
+        mdict['0008|0060'] = 'CT'
 
-        mdict_list = []
+        if metadata_dict is not None:
+            for key, val in metadata_dict.items():
+                mdict[key] = val
+
         # Per slice properties:
+        mdict_list = []
+        filenames = []
+
         for i in range(n):
             # copy the shared properties dict:
             mdict_i = itk.MetaDataDictionary(mdict)
@@ -265,6 +280,6 @@ class ItkIO:
             mdict_i['0020|0032'] = position_str
 
             mdict_list += [mdict_i]
+            filenames += [str(Path(dirname) / pattern.format(i + 1))]
 
-        return mdict_list
-
+        return mdict_list, filenames

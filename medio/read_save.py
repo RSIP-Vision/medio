@@ -71,6 +71,6 @@ def save_img(filename, np_image, metadata, use_original_ornt=True, backend=None,
     writer(filename, np_image, metadata, use_original_ornt, **kwargs)
 
 
-def save_dir(dirname, np_image, metadata, use_original_ornt=True):
+def save_dir(dirname, np_image, metadata, use_original_ornt=True, **kwargs):
     """Save image as a dicom directory"""
-    ItkIO.save_dcm_dir(dirname, np_image, metadata, use_original_ornt)
+    ItkIO.save_dcm_dir(dirname, np_image, metadata, use_original_ornt, **kwargs)
