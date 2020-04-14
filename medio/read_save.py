@@ -31,7 +31,7 @@ def read_img(input_path, desired_ornt=None, backend=None, **kwargs):
         elif backend in ('pdcm', 'pydicom'):
             if desired_ornt is not None:
                 warn(f'Pydicom reader backend does not support reorientation. The passed desired orientation '
-                     f'{desired_ornt} will be ignored')
+                     f'{desired_ornt} will be ignored')  # TODO: change to ValueError
             np_image, metadata = pdcm_reader(input_path, **kwargs)
             return np_image, metadata
         else:

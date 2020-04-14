@@ -1,6 +1,7 @@
-from medio.metadata.convert_nib_itk import convert, inv_axcodes, convert_affine
-from medio.metadata.affine import Affine
+import numpy as np
 from nibabel import aff2axcodes
+from medio.metadata.affine import Affine
+from medio.metadata.convert_nib_itk import convert, inv_axcodes, convert_affine
 
 
 class MetaData:
@@ -17,9 +18,13 @@ class MetaData:
         self.affine = affine
         self.orig_ornt = orig_ornt
         self._ornt = None
+        self.check_valid_coord_sys(coord_sys)
+        self.coord_sys = coord_sys
+
+    @staticmethod
+    def check_valid_coord_sys(coord_sys):
         if coord_sys not in ('itk', 'nib'):
             raise ValueError('Metadata coord_sys must be \'itk\' or \'nib\'')
-        self.coord_sys = coord_sys
 
     def __repr__(self):
         return (f'Affine:\n'
@@ -34,6 +39,7 @@ class MetaData:
         Converts the metadata coordinate system inplace to dest_coord_sys. Affects affine, ornt and orig_ornt
         :param dest_coord_sys: the destination coordinate system - 'itk' or 'nib' (nifti)
         """
+        self.check_valid_coord_sys(dest_coord_sys)
         if dest_coord_sys != self.coord_sys:
             self.affine, self._ornt, self.orig_ornt = convert(self.affine, self._ornt, self.orig_ornt)
             self.coord_sys = dest_coord_sys
@@ -63,3 +69,11 @@ class MetaData:
     @property
     def spacing(self):
         return self.affine.spacing
+
+    def is_right_handed_ornt(self):
+        if self.affine.dim != 3:
+            raise ValueError('Right handed orientation is relevant only to a 3d space')
+        u, v, n = self.affine.direction.T
+        return np.dot(np.cross(u, v), n) >= 0
+        # TODO - other option: check the sign of the triple product with determinant
+        #  return np.linalg.det(self.affine.direction) >= 0

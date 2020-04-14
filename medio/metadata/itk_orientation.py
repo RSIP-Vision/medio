@@ -38,7 +38,7 @@ def itk_orientation_code(ax_code):
 
 ax_codes_iter = itertools.chain(
     *map(itertools.permutations,
-         itertools.product(('L', 'R'), ('P', 'A'), ('I', 'S'))
+         itertools.product(('R', 'L'), ('A', 'P'), ('I', 'S'))
          ))
 
 # two way dictionary that translates itk numerical orientation codes to orientation strings and vice versa

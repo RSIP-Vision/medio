@@ -1,8 +1,8 @@
 import itk
 import numpy as np
-from pathlib import Path
+from uuid import uuid1
 from typing import Union
-import uuid
+from pathlib import Path
 from medio.metadata.affine import Affine
 from medio.metadata.metadata import MetaData
 from medio.metadata.itk_orientation import itk_orientation_code, codes_str_dict
@@ -178,7 +178,7 @@ class ItkIO:
         """
         names_generator = itk.GDCMSeriesFileNames.New()
         names_generator.SetUseSeriesDetails(True)
-        names_generator.AddSeriesRestriction("0008|0021")
+        names_generator.AddSeriesRestriction('0008|0021')
         names_generator.SetGlobalWarningDisplay(False)
         names_generator.SetDirectory(dirname)
 
@@ -187,7 +187,7 @@ class ItkIO:
         if len(series_uid) == 0:
             raise IOError('No DICOMs in: ' + dirname)
         if len(series_uid) > 1:
-            raise IOError('The directory: ' + dirname + '\ncontains more than one DICOM file')
+            raise IOError('The directory: ' + dirname + '\ncontains more than one DICOM series')
 
         series_identifier = series_uid[0]
         filenames = names_generator.GetFileNames(series_identifier)
@@ -238,9 +238,9 @@ class ItkIO:
         mdict = itk.MetaDataDictionary()
 
         # Series Instance UID
-        mdict['0020|000e'] = str(uuid.uuid1())
+        mdict['0020|000e'] = str(uuid1())
         # Study Instance UID
-        mdict['0020|000d'] = str(uuid.uuid1())
+        mdict['0020|000d'] = str(uuid1())
 
         # Pixel Spacing - TODO: maybe not necessary? automatically saved
         mdict['0028|0030'] = f'{image.GetSpacing()[0]}\\{image.GetSpacing()[1]}'

@@ -33,7 +33,7 @@ class Affine(np.ndarray):
         return obj
     
     def __init__(self, affine=None, *, direction=None, spacing=None, origin=None):
-        self._dim = self.shape[0] - 1
+        self.dim = self.shape[0] - 1
         if affine is None:
             self._spacing = np.asarray(spacing)
             self._direction = np.asarray(direction)
