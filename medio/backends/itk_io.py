@@ -50,6 +50,7 @@ class ItkIO:
     @staticmethod
     def prepare_image(image_np, metadata, use_original_ornt, dtype, is_vector=False):
         """Prepare image for saving"""
+        # TODO: add checking right-handed orientation before saving a dicom file/series
         metadata.convert(ItkIO.coord_sys)
         image = ItkIO.pack2img(image_np, metadata.affine, dtype, is_vector)
         if use_original_ornt:

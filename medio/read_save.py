@@ -1,4 +1,3 @@
-from warnings import warn
 from medio.backends.nib_io import NibIO
 from medio.backends.itk_io import ItkIO
 from medio.backends.pdcm_io import PdcmIO
@@ -30,8 +29,8 @@ def read_img(input_path, desired_ornt=None, backend=None, **kwargs):
             reader = itk_reader
         elif backend in ('pdcm', 'pydicom'):
             if desired_ornt is not None:
-                warn(f'Pydicom reader backend does not support reorientation. The passed desired orientation '
-                     f'{desired_ornt} will be ignored')  # TODO: change to ValueError
+                NotImplementedError('Pydicom reader backend does not yet support reorientation. The passed desired '
+                                    'orientation must be None (default).')
             np_image, metadata = pdcm_reader(input_path, **kwargs)
             return np_image, metadata
         else:

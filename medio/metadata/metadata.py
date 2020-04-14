@@ -49,8 +49,6 @@ class MetaData:
         if self.coord_sys == 'nib':
             ornt_tup = aff2axcodes(self.affine)
         elif self.coord_sys == 'itk':
-            # TODO: consider using orientation conversion dict from nib to itk with something like
-            #  labels=list(zip('RAI', 'LPS'))
             ornt_tup = inv_axcodes(aff2axcodes(convert_affine(self.affine)))
         else:
             raise ValueError('Unknown coord_sys:', self.coord_sys)
@@ -61,7 +59,7 @@ class MetaData:
     def ornt(self):
         if self._ornt is None:
             self._ornt = self.get_ornt()
-            # if self.orig_ornt is also None, the image was not reoriented and the original orientation is the same
+            # if self.orig_ornt is also None, the affine was not reoriented and the original orientation is the same
             if self.orig_ornt is None:
                 self.orig_ornt = self._ornt
         return self._ornt
@@ -71,9 +69,10 @@ class MetaData:
         return self.affine.spacing
 
     def is_right_handed_ornt(self):
+        """Check whether the affine orientation is right or left handed. The sign of the triple product of the
+        direction matrix is calculated with a determinant. It should be +1 or -1 because it is a rotation matrix.
+        +1 (-1) indicates right (left) handed orientation. 0 indicates a 0's column in the direction matrix which
+        can occur in 2d images. To be used primarily before saving a dicom file or series"""
         if self.affine.dim != 3:
             raise ValueError('Right handed orientation is relevant only to a 3d space')
-        u, v, n = self.affine.direction.T
-        return np.dot(np.cross(u, v), n) >= 0
-        # TODO - other option: check the sign of the triple product with determinant
-        #  return np.linalg.det(self.affine.direction) >= 0
+        return np.linalg.det(self.affine.direction) >= 0
