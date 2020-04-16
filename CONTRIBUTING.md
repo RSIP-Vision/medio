@@ -64,22 +64,6 @@ Key features, pros & cons:
 | pythonic                 | x   | v       | v                 |
 | high level               | x   | v       | x                 |
 
-# TODO
-- ITK bug:
-	In keras fit_generator, when fitting a Sequence instance with
-	```python
-	model.fit_generator(..., workers!=1, max_queue_size=tc.MAX_QUEUE_SIZE, use_multiprocessing=False)
-	```
-	There is a bug in ITK:
-	```python
-	File "C:\Users\%User%\Anaconda3\envs\tf\lib\site-packages\itkBase.py", line 63, in LoadModule
-	swig.__dict__.update(this_module.swig.__dict__)
-	AttributeError: module 'ITKIOImageBase' has no attribute 'swig'
-	```
-- MedImg feature: additional feature for MedImg class -
-
-	Change affine (metadata) for rotations
-
 # Tests
 - (add dataset sources)
 
