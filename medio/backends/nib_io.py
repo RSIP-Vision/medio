@@ -45,9 +45,8 @@ class NibIO:
         Path(filename).parent.mkdir(parents=True, exist_ok=True)
         metadata.convert(NibIO.coord_sys)
         img_struct = nib.Nifti1Image(img.astype(dtype), metadata.affine)
-        if use_original_ornt:
-            desired_axcodes = metadata.orig_ornt
-            img_struct = NibIO.reorient(img_struct, desired_axcodes)
+        desired_axcodes = metadata.orig_ornt if use_original_ornt else None
+        img_struct = NibIO.reorient(img_struct, desired_axcodes)
         nib.save(img_struct, filename)
 
     @staticmethod

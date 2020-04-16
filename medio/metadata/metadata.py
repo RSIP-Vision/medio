@@ -76,3 +76,44 @@ class MetaData:
         if self.affine.dim != 3:
             raise ValueError('Right handed orientation is relevant only to a 3d space')
         return np.linalg.det(self.affine.direction) >= 0
+
+
+def is_right_handed_axcodes(axcodes):
+    letter_vec_dict = {'R': [1, 0, 0],
+                       'L': [-1, 0, 0],
+                       'A': [0, 1, 0],
+                       'P': [0, -1, 0],
+                       'I': [0, 0, 1],
+                       'S': [0, 0, -1]
+                       }
+    u, v, n = [letter_vec_dict[letter] for letter in axcodes]
+    return np.dot(np.cross(u, v), n) == 1
+
+
+def flip_last_axcodes(axcodes):
+    return axcodes[:-1] + inv_axcodes(axcodes[-1])
+
+
+def check_dcm_ornt(desired_ornt, metadata, allow_dcm_reorient=False):
+    """Check whether the orientation desired_ornt is right handed before saving image as a dicom
+    :param desired_ornt: the desired orientation for the saver
+    :param metadata: if desired_ornt is None (not set), use metadata.ornt
+    :param allow_dcm_reorient: whether to allow automatic reorientation to a right handed orientation or not
+    :return: right handed desired_ornt or ValueError
+    """
+    # first set the desired orientation
+    if desired_ornt is None:
+        desired_ornt = metadata.ornt
+        # TODO: does it take time to apply reorient for the same orientation? (itk, nib also - for pydicom)
+        #  if desired_ornt == metadata.orig_ornt it can be set to None afterwards
+    if is_right_handed_axcodes(desired_ornt):
+        return desired_ornt
+    else:
+        right_handed_ornt = flip_last_axcodes(desired_ornt)
+        if allow_dcm_reorient:
+            return right_handed_ornt
+        else:
+            raise ValueError(f'The desired orientation \'{desired_ornt}\' is left handed, whereas saving dicom is '
+                             f'possible only with a right handed orientation. \nYou can either pass the saver '
+                             f'parameter allow_dcm_reorient=True to allow automatic reorientation (in this case to '
+                             f'\'{right_handed_ornt}\'), or \nreorient yourself before saving the image as a dicom.')
