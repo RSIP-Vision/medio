@@ -87,7 +87,10 @@ def is_right_handed_axcodes(axcodes):
                        'S': [0, 0, -1]
                        }
     u, v, n = [letter_vec_dict[letter] for letter in axcodes]
-    return np.dot(np.cross(u, v), n) == 1
+    ornt_sign = np.dot(np.cross(u, v), n)
+    if ornt_sign not in (-1, 1):
+        raise ValueError(f'Invalid axcodes: {axcodes}')
+    return ornt_sign == 1
 
 
 def flip_last_axcodes(axcodes):
