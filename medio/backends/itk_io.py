@@ -275,11 +275,12 @@ class ItkIO:
         mdict['0020|000d'] = str(uuid1())
 
         # Pixel Spacing - TODO: maybe not necessary? automatically saved
-        mdict['0028|0030'] = f'{image.GetSpacing()[0]}\\{image.GetSpacing()[1]}'
+        spacing = image.GetSpacing()
+        mdict['0028|0030'] = f'{spacing[0]}\\{spacing[1]}'
         # Slice Thickness
-        mdict['0018|0050'] = str(image.GetSpacing()[2])
+        mdict['0018|0050'] = str(spacing[2])
         # Spacing Between Slices - TODO: it duplicates slice thickness
-        mdict['0018|0088'] = str(image.GetSpacing()[2])
+        mdict['0018|0088'] = str(spacing[2])
         # Image Orientation (Patient)
         orientation_str = '\\'.join([str(image.GetDirection().GetVnlMatrix().get(i, j))
                                      for j in range(2) for i in range(3)])

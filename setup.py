@@ -17,15 +17,15 @@ setup(name='medio',
       keywords=['medical images', 'IO', 'itk', 'nibabel', 'pydicom'],
       packages=find_packages(exclude=['*.tests']),
       install_requires=[
-            'itk-io',
-            'itk-filtering',
-            'nibabel',
-            'dicom-numpy',
-            'pydicom',
-            'numpy'
+            'itk-io >= 5.0.1',
+            'itk-filtering >= 5.0.1',
+            'nibabel >= 3.0.2',
+            'dicom-numpy >= 0.3.0',
+            'pydicom >= 1.4.2',
+            'numpy >= 1.18.1'
       ],
       classifiers=[
-            'Development Status :: 2 - Pre-Alpha',
+            'Development Status :: 3 - Alpha',
 
             'Intended Audience :: Developers',
             'Intended Audience :: Healthcare Industry',
@@ -36,4 +36,4 @@ setup(name='medio',
             'Programming Language :: Python :: 3',
             'Operating System :: OS Independent'
       ],
-      zip_safe=False)
+      zip_safe=True)

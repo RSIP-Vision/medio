@@ -1,7 +1,7 @@
 import nibabel as nib
 import numpy as np
-from pathlib import Path
 from typing import Union
+from pathlib import Path
 from medio.metadata.metadata import MetaData
 from medio.metadata.affine import Affine
 
