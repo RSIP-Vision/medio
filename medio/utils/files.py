@@ -18,11 +18,11 @@ def is_dicom(filename, check_exist=True):
     return is_file_suffix(filename, '.dcm', '.dicom', check_exist=check_exist)
 
 
-def make_empty_dir(dir_path):
+def make_empty_dir(dir_path, parents=False):
     """Make an empty directory. If it exists - check that it is empty"""
     dir_path = Path(dir_path)
     try:
-        dir_path.mkdir(parents=True, exist_ok=False)
+        dir_path.mkdir(parents=parents, exist_ok=False)
     except FileExistsError:
         # the directory exists
         try:
@@ -30,4 +30,4 @@ def make_empty_dir(dir_path):
         except StopIteration:
             pass  # the directory exists but empty - ok
         else:
-            raise FileExistsError(f'The directory {str(dir_path)} is not empty')
+            raise FileExistsError(f'The directory \'{dir_path}\' is not empty')

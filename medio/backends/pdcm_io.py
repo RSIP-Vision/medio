@@ -12,12 +12,10 @@ class PdcmIO:
     @staticmethod
     def read_img(input_path, globber='*'):
         input_path = Path(input_path)
-        if input_path.is_file():
-            return PdcmIO.read_dcm_file(input_path)
-        elif input_path.is_dir():
+        if input_path.is_dir():
             return PdcmIO.read_dcm_dir(input_path, globber)
         else:
-            raise IOError('Invalid input path')
+            return PdcmIO.read_dcm_file(input_path)
 
     @staticmethod
     def read_dcm_file(filename):
@@ -33,7 +31,7 @@ class PdcmIO:
         # find all dicom files within the specified folder, read every file separately and sort them by InstanceNumber
         files = list(Path(input_dir).glob(globber))
         if len(files) == 0:
-            raise IOError(f'Received an empty directory: {str(input_dir)}')
+            raise FileNotFoundError(f'Received an empty directory: \'{input_dir}\'')
         elif len(files) == 1:
             return PdcmIO.read_dcm_file(files[0])
         slices = [pydicom.dcmread(str(filename)) for filename in files]
@@ -46,11 +44,13 @@ class PdcmIO:
         return MetaData(affine, coord_sys=PdcmIO.coord_sys)
 
     @staticmethod
-    def save_arr2dcm_file(output_filename, img_arr, template_filename, keep_rescale=False):
+    def save_arr2dcm_file(output_filename, template_filename, img_arr, dtype=None, keep_rescale=False):
         """
         Writes a dicom single file image using template file, without the intensity transformation from template dataset
+
+        :param template_filename: the single dicom scan whose metadata is used
         :param img_arr: numpy array of the image to be saved, should be in the same orientation as template_filename
-        :param template_filename: the single dicom scan whose meta data is used
+        :param dtype: the dtype for the numpy array, for example 'int16'. If None - will use the dtype of the template
         :param keep_rescale: whether to keep intensity rescale values
         """
         ds = pydicom.dcmread(template_filename)
@@ -61,5 +61,9 @@ class PdcmIO:
             else:
                 del ds.RescaleSlope
                 del ds.RescaleIntercept
-        ds.PixelData = img_arr.astype('int16').tobytes()
+        if dtype is None:
+            img_arr = img_arr.astype(ds.pixel_array.dtype)
+        else:
+            img_arr = img_arr.astype(dtype)
+        ds.PixelData = img_arr.tobytes()
         ds.save_as(output_filename)

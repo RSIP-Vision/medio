@@ -51,7 +51,7 @@ class MetaData:
         elif self.coord_sys == 'itk':
             ornt_tup = inv_axcodes(aff2axcodes(convert_affine(self.affine)))
         else:
-            raise ValueError('Unknown coord_sys:', self.coord_sys)
+            raise ValueError(f'Unknown coord_sys: \'{self.coord_sys}\'')
         ornt_str = ''.join(ornt_tup)
         return ornt_str
 
@@ -71,11 +71,11 @@ class MetaData:
     def is_right_handed_ornt(self):
         """Check whether the affine orientation is right or left handed. The sign of the triple product of the
         direction matrix is calculated with a determinant. It should be +1 or -1 because it is a rotation matrix.
-        +1 (-1) indicates right (left) handed orientation. 0 indicates a 0's column in the direction matrix which
-        can occur in 2d images. To be used primarily before saving a dicom file or series"""
+        +1 (-1) indicates right (left) handed orientation.
+        To be used primarily before saving a dicom file or series"""
         if self.affine.dim != 3:
             raise ValueError('Right handed orientation is relevant only to a 3d space')
-        return np.linalg.det(self.affine.direction) >= 0
+        return np.linalg.det(self.affine.direction) > 0
 
 
 def is_right_handed_axcodes(axcodes):
@@ -89,7 +89,7 @@ def is_right_handed_axcodes(axcodes):
     u, v, n = [letter_vec_dict[letter] for letter in axcodes]
     ornt_sign = np.dot(np.cross(u, v), n)
     if ornt_sign not in (-1, 1):
-        raise ValueError(f'Invalid axcodes: {axcodes}')
+        raise ValueError(f'Invalid axcodes: \'{axcodes}\'')
     return ornt_sign == 1
 
 

@@ -10,41 +10,30 @@ class NibIO:
     coord_sys = 'nib'
 
     @staticmethod
-    def read_img(input_path, desired_axcodes=None, dtype='int16', unravel=False):
+    def read_img(input_path, desired_axcodes=None, unravel=False):
         """Reads a NIFTI file"""
         img_struct = nib.load(input_path)
         orig_ornt_str = ''.join(nib.aff2axcodes(img_struct.affine))
         if desired_axcodes is not None:
             img_struct = NibIO.reorient(img_struct, desired_axcodes)
-        try:
-            img = img_struct.get_fdata()
-        except TypeError:
-            img = np.asanyarray(img_struct.dataobj)
-        try:
-            img = img.astype(dtype)
-        except TypeError:
-            if unravel:
-                try:
-                    img = NibIO.unravel_array(img)
-                except TypeError:
-                    pass
+        img = np.asanyarray(img_struct.dataobj)
+        if unravel:
+            img = NibIO.unravel_array(img)
         affine = Affine(img_struct.affine)
         metadata = MetaData(affine=affine, orig_ornt=orig_ornt_str, coord_sys=NibIO.coord_sys)
         return img, metadata
 
     @staticmethod
-    def save_img(filename, img, metadata, use_original_ornt=True, dtype='int16'):
+    def save_img(filename, img, metadata, use_original_ornt=True):
         """
         Saves the given image as a NIFTI file.
         :param filename: output filename, including a '.nii.gz' or '.nii' suffix.
         :param img: image data array.
         :param metadata: the matching metadata.
         :param use_original_ornt: whether to use the original orientation of the image of not
-        :param dtype: the data type of the saved image
         """
-        Path(filename).parent.mkdir(parents=True, exist_ok=True)
         metadata.convert(NibIO.coord_sys)
-        img_struct = nib.Nifti1Image(img.astype(dtype), metadata.affine)
+        img_struct = nib.Nifti1Image(img, metadata.affine)
         desired_axcodes = metadata.orig_ornt if use_original_ornt else None
         img_struct = NibIO.reorient(img_struct, desired_axcodes)
         nib.save(img_struct, filename)

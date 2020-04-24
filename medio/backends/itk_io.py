@@ -10,67 +10,64 @@ from medio.utils.files import is_dicom, make_empty_dir
 
 
 class ItkIO:
+    coord_sys = 'itk'
+    # default image type:
     dimension = 3
     pixel_type = itk.ctype('short')  # signed short - int16
     image_type = itk.Image[pixel_type, dimension]
-    coord_sys = 'itk'
 
     @staticmethod
-    def read_img(input_path, desired_axcodes=None, image_type=image_type, dtype='int16', **kwargs):
+    def read_img(input_path, desired_axcodes=None, image_type=image_type, **kwargs):
         """
         The main reader function, reads images and performs reorientation and unpacking
         :param input_path: path of image file or directory containing dicom series
         :param desired_axcodes: string or tuple - e.g. 'LPI', ('R', 'A', 'S')
         :param image_type: preferred itk image type for dicom folders
-        :param dtype: the dtype of the returned numpy array
         :return: numpy image and metadata object which includes pixdim, affine, original orientation string and
         coordinates system
         """
         input_path = Path(input_path)
-        if input_path.is_file():
-            img = ItkIO.read_img_file(str(input_path), **kwargs)
-        elif input_path.is_dir():
+        if input_path.is_dir():
             img = ItkIO.read_dcm_dir(str(input_path), image_type=image_type)
+        elif input_path.is_file():
+            img = ItkIO.read_img_file(str(input_path), **kwargs)
         else:
-            raise IOError('Invalid input path')
+            raise FileNotFoundError(f'No such file or directory: \'{input_path}\'')
         img, original_ornt_code = ItkIO.reorient(img, desired_axcodes)
-        image_np, affine = ItkIO.unpack_img(img, dtype)
+        image_np, affine = ItkIO.unpack_img(img)
         ornt_str = codes_str_dict[original_ornt_code]
         metadata = MetaData(affine=affine, orig_ornt=ornt_str, coord_sys=ItkIO.coord_sys)
         return image_np, metadata
 
     @staticmethod
-    def save_img(filename, image_np, metadata, use_original_ornt=True, dtype='int16', is_vector=False,
-                 allow_dcm_reorient=False, compression=False):
+    def save_img(filename, image_np, metadata, use_original_ornt=True, is_vector=False, allow_dcm_reorient=False,
+                 compression=False):
         """
         Save an image file with itk
         :param filename: the filename to save, str or os.PathLike
         :param image_np: the image's numpy array
         :param metadata: the corresponding metadata
         :param use_original_ornt: whether to save in the original orientation or not
-        :param dtype: equivalent to image_np.astype(dtype) in the packing to itk image
         :param is_vector: is the image a vector type, for example RGB. If it is - the channels are the first dimension
         :param allow_dcm_reorient: whether to allow automatic reorientation to a right handed orientation or not
         :param compression: use compression or not
         """
-        Path(filename).parent.mkdir(parents=True, exist_ok=True)
         is_dcm = is_dicom(filename, check_exist=False)
         if is_dcm:
-            image_np, dtype = ItkIO.prepare_dcm_array(image_np, is_vector=is_vector)
-        image = ItkIO.prepare_image(image_np, metadata, use_original_ornt, dtype, is_vector=is_vector, is_dcm=is_dcm,
+            image_np = ItkIO.prepare_dcm_array(image_np, is_vector=is_vector)
+        image = ItkIO.prepare_image(image_np, metadata, use_original_ornt, is_vector=is_vector, is_dcm=is_dcm,
                                     allow_dcm_reorient=allow_dcm_reorient)
         ItkIO.save_img_file(image, str(filename), compression=compression)
 
     @staticmethod
-    def prepare_image(image_np, metadata, use_original_ornt, dtype, is_vector=False, is_dcm=False,
-                      allow_dcm_reorient=False):
+    def prepare_image(image_np, metadata, use_original_ornt, is_vector=False, is_dcm=False, allow_dcm_reorient=False):
         """Prepare image for saving"""
         metadata.convert(ItkIO.coord_sys)
         desired_ornt = metadata.orig_ornt if use_original_ornt else None
         if is_dcm:
             # checking right-handed orientation before saving a dicom file/series
             desired_ornt = check_dcm_ornt(desired_ornt, metadata, allow_dcm_reorient=allow_dcm_reorient)
-        image = ItkIO.pack2img(image_np, metadata.affine, dtype, is_vector)
+        image = ItkIO.pack2img(image_np, metadata.affine, is_vector)
         image, _ = ItkIO.reorient(image, desired_ornt)
         return image
 
@@ -89,12 +86,12 @@ class ItkIO:
                 dcm_dtypes = [np.int16] + dcm_dtypes
 
         if image_np.dtype in dcm_dtypes:
-            return image_np, image_np.dtype
+            return image_np
 
         for dtype in dcm_dtypes:
             arr = image_np.astype(dtype)
             if np.array_equal(arr, image_np):
-                return arr, dtype
+                return arr
 
         raise NotImplementedError('Saving a single dicom file with ItkIO is currently supported only for \n'
                                   '1. 2d images - int16, uint16, uint8\n'
@@ -146,8 +143,8 @@ class ItkIO:
         return img_itk
 
     @staticmethod
-    def unpack_img(img, dtype='int16'):
-        image_np = ItkIO.itk_img_to_array(img).astype(dtype)
+    def unpack_img(img):
+        image_np = ItkIO.itk_img_to_array(img)
         # metadata
         direction = itk.array_from_vnl_matrix(img.GetDirection().GetVnlMatrix().as_matrix())
         spacing = itk.array_from_vnl_vector(img.GetSpacing().GetVnlVector())
@@ -156,8 +153,8 @@ class ItkIO:
         return image_np, affine
 
     @staticmethod
-    def pack2img(image_np, affine, dtype='int16', is_vector=False):
-        image = ItkIO.array_to_itk_img(image_np.astype(dtype), is_vector)
+    def pack2img(image_np, affine, is_vector=False):
+        image = ItkIO.array_to_itk_img(image_np, is_vector)
         direction_arr, spacing, origin = affine.direction, affine.spacing, affine.origin
 
         # setting metadata
@@ -206,23 +203,23 @@ class ItkIO:
         series_uid = names_generator.GetSeriesUIDs()
 
         if len(series_uid) == 0:
-            raise IOError('No DICOMs in: ' + dirname)
+            raise FileNotFoundError(f'No DICOMs in: \'{dirname}\'')
         if len(series_uid) > 1:
-            raise IOError('The directory: ' + dirname + '\ncontains more than one DICOM series')
+            raise OSError(f'The directory: \'{dirname}\'\ncontains more than one DICOM series')
 
         series_identifier = series_uid[0]
         filenames = names_generator.GetFileNames(series_identifier)
         reader = itk.ImageSeriesReader[image_type].New()
         dicom_io = itk.GDCMImageIO.New()
-        reader.SetImageIO(dicom_io)  # TODO: is this necessary?
+        reader.SetImageIO(dicom_io)
         reader.SetFileNames(filenames)
-        reader.ForceOrthogonalDirectionOff()  # TODO: why?
+        reader.ForceOrthogonalDirectionOff()
         reader.Update()
         itk_img = reader.GetOutput()
         return itk_img
 
     @staticmethod
-    def save_dcm_dir(dirname, image_np, metadata, use_original_ornt=True, dtype='int16', allow_dcm_reorient=False,
+    def save_dcm_dir(dirname, image_np, metadata, use_original_ornt=True, parents=False, allow_dcm_reorient=False,
                      **kwargs):
         """
         Save a 3d numpy array image_np as a dicom series of 2d dicom slices in the directory dirname
@@ -230,17 +227,16 @@ class ItkIO:
         :param image_np: the image's numpy array
         :param metadata: the corresponding metadata
         :param use_original_ornt: whether to save in the original orientation or not
-        :param dtype: equivalent to image_np.astype(dtype) in the packing to itk image
         :param allow_dcm_reorient: whether to allow automatic reorientation to a right handed orientation or not
         :param kwargs: optional kwargs passed to ItkIO.dcm_metadata: pattern, metadata_dict
         """
-        image = ItkIO.prepare_image(image_np, metadata, use_original_ornt, dtype, is_dcm=True,
+        image = ItkIO.prepare_image(image_np, metadata, use_original_ornt, is_dcm=True,
                                     allow_dcm_reorient=allow_dcm_reorient)
         image_type = type(image)
         _, (pixel_type, _) = itk.template(image)
         image2d_type = itk.Image[pixel_type, 2]
         writer = itk.ImageSeriesWriter[image_type, image2d_type].New()
-        make_empty_dir(dirname)
+        make_empty_dir(dirname, parents)
         # Generate necessary metadata and filenames per slice:
         mdict_list, filenames = ItkIO.dcm_series_metadata(image, dirname, **kwargs)
         metadict_vec = itk.vector[itk.MetaDataDictionary](mdict_list)
