@@ -17,20 +17,23 @@ class ItkIO:
     image_type = itk.Image[pixel_type, dimension]
 
     @staticmethod
-    def read_img(input_path, desired_axcodes=None, image_type=image_type, **kwargs):
+    def read_img(input_path, desired_axcodes=None, pixel_type=pixel_type, fallback_only=False, dimension=dimension):
         """
         The main reader function, reads images and performs reorientation and unpacking
         :param input_path: path of image file or directory containing dicom series
         :param desired_axcodes: string or tuple - e.g. 'LPI', ('R', 'A', 'S')
-        :param image_type: preferred itk image type for dicom folders
+        :param pixel_type: preferred itk pixel type for image files or dicom folders
+        :param fallback_only: used in itk.imread, relevant to files only. If True, finds the pixel_type automatically
+        and uses pixel_type only if failed
+        :param dimension: relevant to folders only. The dimension of the image to be read
         :return: numpy image and metadata object which includes pixdim, affine, original orientation string and
         coordinates system
         """
         input_path = Path(input_path)
         if input_path.is_dir():
-            img = ItkIO.read_dcm_dir(str(input_path), image_type=image_type)
+            img = ItkIO.read_dcm_dir(str(input_path), image_type=itk.Image[pixel_type, dimension])
         elif input_path.is_file():
-            img = ItkIO.read_img_file(str(input_path), **kwargs)
+            img = ItkIO.read_img_file(str(input_path), pixel_type=pixel_type, fallback_only=fallback_only)
         else:
             raise FileNotFoundError(f'No such file or directory: \'{input_path}\'')
         img, original_ornt_code = ItkIO.reorient(img, desired_axcodes)

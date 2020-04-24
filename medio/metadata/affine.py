@@ -29,7 +29,7 @@ class Affine(np.ndarray):
         """
         if affine is None:
             affine = cls.construct_affine(direction, spacing, origin)
-        obj = np.asarray(affine).view(cls)
+        obj = np.asarray(affine).view(cls)  # return array view of type Affine
         return obj
     
     def __init__(self, affine=None, *, direction=None, spacing=None, origin=None):
