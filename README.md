@@ -8,7 +8,7 @@ It includes conversion between the metadata conventions, reorientations, affine 
 and saving dicom series or file.
 
 # Installation
-Download the [.whl file](https://drive.google.com/file/d/1hRctOFGy4qxgKpYU67XCsfnOvt4-FHyc/view?usp=sharing)
+Download the [.whl file](/uploads/338e95916f6c22548d998dda4f1bf5bc/medio-0.1.2-py3-none-any.whl)
 and install it with:
 ```
 (<env-name>) C:\Users\<username>\Downloads>pip install medio-0.1.2-py3-none-any.whl
