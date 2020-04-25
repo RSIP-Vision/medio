@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
-from medio import __version__
 
+from medio import __version__
 
 with open('README.md') as f:
     long_description = f.read()

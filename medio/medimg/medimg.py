@@ -1,6 +1,6 @@
-from medio.read_save import read_img, save_img
-from medio.metadata.metadata import MetaData
 from medio.metadata.affine import Affine
+from medio.metadata.metadata import MetaData
+from medio.read_save import read_img, save_img
 from medio.utils.explicit_slicing import explicit_inds
 
 

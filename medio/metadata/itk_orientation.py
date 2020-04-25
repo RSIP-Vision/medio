@@ -2,8 +2,9 @@
 This module is based on the C++ ITK code - itkSpatialOrientation.h
 """
 
-from enum import IntEnum
 import itertools
+from enum import IntEnum
+
 from medio.utils.two_way_dict import TwoWayDict
 
 

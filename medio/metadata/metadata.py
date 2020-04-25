@@ -1,5 +1,6 @@
 import numpy as np
 from nibabel import aff2axcodes
+
 from medio.metadata.affine import Affine
 from medio.metadata.convert_nib_itk import convert, inv_axcodes, convert_affine
 

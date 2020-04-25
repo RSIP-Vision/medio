@@ -1,6 +1,7 @@
 from pathlib import Path
-from medio.backends.nib_io import NibIO
+
 from medio.backends.itk_io import ItkIO
+from medio.backends.nib_io import NibIO
 from medio.backends.pdcm_io import PdcmIO
 from medio.metadata.convert_nib_itk import inv_axcodes
 from medio.utils.files import is_nifti

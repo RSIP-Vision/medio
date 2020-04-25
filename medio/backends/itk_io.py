@@ -1,11 +1,13 @@
+from pathlib import Path
+from typing import Union
+from uuid import uuid1
+
 import itk
 import numpy as np
-from uuid import uuid1
-from typing import Union
-from pathlib import Path
+
 from medio.metadata.affine import Affine
-from medio.metadata.metadata import MetaData, check_dcm_ornt
 from medio.metadata.itk_orientation import itk_orientation_code, codes_str_dict
+from medio.metadata.metadata import MetaData, check_dcm_ornt
 from medio.utils.files import is_dicom, make_empty_dir
 
 
@@ -278,7 +280,7 @@ class ItkIO:
         mdict['0028|0030'] = f'{spacing[0]}\\{spacing[1]}'
         # Slice Thickness
         mdict['0018|0050'] = str(spacing[2])
-        # Spacing Between Slices - TODO: it duplicates slice thickness
+        # Spacing Between Slices
         mdict['0018|0088'] = str(spacing[2])
         # Image Orientation (Patient)
         orientation_str = '\\'.join([str(image.GetDirection().GetVnlMatrix().get(i, j))

@@ -6,6 +6,7 @@ def convert_ds(dataset):
     Convert a dicom file with shared functional groups sequence into a class which enables shorter access to its
     properties. This is intended primarily for a single dicom file which includes several frames/slices.
     Usage example:
+    >>> import pydicom
     >>> ds = pydicom.dcmread('single_dicom_file/I0')
     >>> ds = convert_ds(ds)
     >>> print(ds.PixelSpacing)

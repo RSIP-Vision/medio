@@ -1,9 +1,10 @@
+from typing import Union
+
 import nibabel as nib
 import numpy as np
-from typing import Union
-from pathlib import Path
-from medio.metadata.metadata import MetaData
+
 from medio.metadata.affine import Affine
+from medio.metadata.metadata import MetaData
 
 
 class NibIO:
@@ -53,7 +54,7 @@ class NibIO:
 
     @staticmethod
     def unravel_array(array):
-        """Simplify array dtype if applicable. For example, if the array if of RGB dtype:
+        """Simplify array dtype if it is a structured data type. For example, if the array if of RGB dtype:
         np.dtype([('R', 'uint8'), ('G', 'uint8'), ('B', 'uint8')])
         Convert it into an array with dtype 'uint8' and 3 channels for RGB in an additional last dimension"""
         dtype = array.dtype
