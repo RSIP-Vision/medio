@@ -61,6 +61,8 @@ def save_img(filename, np_image, metadata, use_original_ornt=True, backend=None,
     :param use_original_ornt: whether to save in the original orientation stored in metadata.orig_ornt or not
     :param backend: optional - 'itk', 'nib' or None
     :param dtype: equivalent to np_image.astype(dtype) if dtype is not None
+    :param mkdir: if True, creates the directory of `filename`
+    :param parents: to be used with `mkdir=True`. If True, creates also the parent directories
     """
     nib_writer = NibIO.save_img
     itk_writer = ItkIO.save_img
@@ -83,10 +85,10 @@ def save_img(filename, np_image, metadata, use_original_ornt=True, backend=None,
     writer(filename, np_image, metadata, use_original_ornt, **kwargs)
 
 
-def save_dir(dirname, np_image, metadata, use_original_ornt=True, dtype=None, **kwargs):
-    """Save image as a dicom directory
-    :param dtype: equivalent to image_np.astype(dtype) in the packing to itk image
-    """
+def save_dir(dirname, np_image, metadata, use_original_ornt=True, dtype=None, parents=False, allow_dcm_reorient=False,
+             **kwargs):
+    """Save image as a dicom directory. See medio.backends.itk_io.ItkIO.save_dcm_dir documentation.
+    dtype is equivalent to passing image_np.astype(dtype) if dtype is not None"""
     if dtype is not None:
         np_image = np_image.astype(dtype)
-    ItkIO.save_dcm_dir(dirname, np_image, metadata, use_original_ornt, **kwargs)
+    ItkIO.save_dcm_dir(dirname, np_image, metadata, use_original_ornt, parents, allow_dcm_reorient, **kwargs)

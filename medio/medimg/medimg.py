@@ -24,7 +24,7 @@ class MedImg:
 
     def __getitem__(self, item):
         """
-        This method allows cropping and basic down sampling:
+        This method allows cropping and basic down-sampling:
         >>> mimg = MedImg(np_image, metadata)
         >>> new_mimg = mimg[:, 4:-4, ::3]
         >>> print(new_mimg.metadata)

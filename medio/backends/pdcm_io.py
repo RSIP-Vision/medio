@@ -13,6 +13,12 @@ class PdcmIO:
 
     @staticmethod
     def read_img(input_path, globber='*'):
+        """
+        Read a dicom file or folder (series) and return the numpy array and the corresponding metadata
+        :param input_path: path-like object (str or pathlib.Path) of the file or directory to read
+        :param globber: relevant for a directory - globber for selecting the series files (all files by default)
+        :return: numpy array and metadata
+        """
         input_path = Path(input_path)
         if input_path.is_dir():
             return PdcmIO.read_dcm_dir(input_path, globber)
@@ -49,7 +55,8 @@ class PdcmIO:
     def save_arr2dcm_file(output_filename, template_filename, img_arr, dtype=None, keep_rescale=False):
         """
         Writes a dicom single file image using template file, without the intensity transformation from template dataset
-
+        unless keep_rescale is True
+        :param output_filename: path-like object of the output file to be saved
         :param template_filename: the single dicom scan whose metadata is used
         :param img_arr: numpy array of the image to be saved, should be in the same orientation as template_filename
         :param dtype: the dtype for the numpy array, for example 'int16'. If None - will use the dtype of the template

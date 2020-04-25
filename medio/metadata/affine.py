@@ -7,8 +7,10 @@ class Affine(np.ndarray):
     Usage examples:
     >>> affine1 = Affine(np.eye(4))
     >>> affine2 = Affine(direction=np.eye(3), spacing=[0.33, 1, 0.33], origin=[-90.3, 10, 1.44])
-    >>> index = [4, 2, 9]
+    >>> index = [4, 0, 9]
     >>> coord = affine2.index2coord(index)
+    >>> print(coord)
+    [-88.98  10.     4.41]
     """
 
     # keys for the origin and M matrix parts in the affine matrix
@@ -25,7 +27,7 @@ class Affine(np.ndarray):
         :param direction: dxd direction matrix (only rotations without scaling)
         :param spacing: scaling of the axes - vector of length d
         :param origin: the origin - b in the formula above - vector of length d (or a scalar)
-        :return:
+        :return: numpy.ndarray viewed as type 'Affine'
         """
         if affine is None:
             affine = cls.construct_affine(direction, spacing, origin)

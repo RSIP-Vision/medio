@@ -230,11 +230,12 @@ class ItkIO:
                      **kwargs):
         """
         Save a 3d numpy array image_np as a dicom series of 2d dicom slices in the directory dirname
-        :param dirname: the directory to save in the files, str or os.PathLike. If exists - must be empty
+        :param dirname: the directory to save in the files, str or pathlib.Path. If it exists - must be empty
         :param image_np: the image's numpy array
         :param metadata: the corresponding metadata
         :param use_original_ornt: whether to save in the original orientation or not
-        :param allow_dcm_reorient: whether to allow automatic reorientation to a right handed orientation or not
+        :param parents: if True, creates also the parents of dirname
+        :param allow_dcm_reorient: whether to allow automatic reorientation to a right-handed orientation or not
         :param kwargs: optional kwargs passed to ItkIO.dcm_metadata: pattern, metadata_dict
         """
         image = ItkIO.prepare_image(image_np, metadata, use_original_ornt, is_dcm=True,
@@ -261,9 +262,9 @@ class ItkIO:
         Return dicom series metadata per slice and filenames
         :param image: the full itk image to be saved as dicom series
         :param dirname: the directory name
-        :param pattern: pattern for the filenames, including a placeholder ('{}') for the slice number
+        :param pattern: str pattern for the filenames to save, including a placeholder ('{}') for the slice number
         :param metadata_dict: dictionary of metadata for adding tags or overriding the default values. For example,
-        metadata_dict = {'0008|0060': 'US'} will override the default 'CT' modality and set it to 'US' (ultrasound)
+        metadata_dict={'0008|0060': 'US'} will override the default 'CT' modality and set it to 'US' (ultrasound)
         :return: metadata dictionaries per slice, slice filenames
         """
         # The number of slices
