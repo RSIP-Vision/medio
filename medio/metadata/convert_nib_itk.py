@@ -25,7 +25,7 @@ The matrix convert_aff_mat accounts for this difference (for all possible orient
 Usage
 =====
 Works both ways: itk -> nib and nib -> itk, the usage is the same:
->>> new_affine, new_axcodes = convert(affine, axcodes)
+>>> new_affine, new_axcodes = convert_nib_itk(affine, axcodes)
 """
 
 import numpy as np
@@ -62,7 +62,7 @@ def convert_affine(affine):
     return new_affine
 
 
-def convert(affine, *axcodes):
+def convert_nib_itk(affine, *axcodes):
     """Convert affine and orientations (original and current orientations) from nibabel to itk and vice versa"""
     new_affine = convert_affine(affine)
     new_axcodes = []

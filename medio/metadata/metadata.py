@@ -2,7 +2,7 @@ import numpy as np
 from nibabel import aff2axcodes
 
 from medio.metadata.affine import Affine
-from medio.metadata.convert_nib_itk import convert, inv_axcodes, convert_affine
+from medio.metadata.convert_nib_itk import convert_nib_itk, inv_axcodes, convert_affine
 
 
 class MetaData:
@@ -42,7 +42,7 @@ class MetaData:
         """
         self.check_valid_coord_sys(dest_coord_sys)
         if dest_coord_sys != self.coord_sys:
-            self.affine, self._ornt, self.orig_ornt = convert(self.affine, self._ornt, self.orig_ornt)
+            self.affine, self._ornt, self.orig_ornt = convert_nib_itk(self.affine, self._ornt, self.orig_ornt)
             self.coord_sys = dest_coord_sys
 
     def get_ornt(self):
