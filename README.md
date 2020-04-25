@@ -8,10 +8,10 @@ It includes conversion between the metadata conventions, reorientations, affine 
 and saving dicom series or file.
 
 # Installation
-Download the [.whl file](/uploads/df9f3aaf1ee10485c97d8fbd9ff239bb/medio-0.1.1-py3-none-any.whl)
+Download the [.whl file](https://drive.google.com/file/d/1hRctOFGy4qxgKpYU67XCsfnOvt4-FHyc/view?usp=sharing)
 and install it with:
 ```
-(<env-name>) C:\Users\<username>\Downloads>pip install medio-0.1.1-py3-none-any.whl
+(<env-name>) C:\Users\<username>\Downloads>pip install medio-0.1.2-py3-none-any.whl
 ```
 This will install the medio python package and its dependencies in your environment.
 
