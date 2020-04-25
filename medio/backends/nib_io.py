@@ -33,9 +33,11 @@ class NibIO:
         :param metadata: the matching metadata.
         :param use_original_ornt: whether to use the original orientation of the image of not
         """
+        orig_coord_sys = metadata.coord_sys
         metadata.convert(NibIO.coord_sys)
         img_struct = nib.Nifti1Image(img, metadata.affine)
         desired_axcodes = metadata.orig_ornt if use_original_ornt else None
+        metadata.convert(orig_coord_sys)
         img_struct = NibIO.reorient(img_struct, desired_axcodes)
         nib.save(img_struct, filename)
 

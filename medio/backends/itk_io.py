@@ -67,12 +67,14 @@ class ItkIO:
     @staticmethod
     def prepare_image(image_np, metadata, use_original_ornt, is_vector=False, is_dcm=False, allow_dcm_reorient=False):
         """Prepare image for saving"""
+        orig_coord_sys = metadata.coord_sys
         metadata.convert(ItkIO.coord_sys)
         desired_ornt = metadata.orig_ornt if use_original_ornt else None
         if is_dcm:
             # checking right-handed orientation before saving a dicom file/series
             desired_ornt = check_dcm_ornt(desired_ornt, metadata, allow_dcm_reorient=allow_dcm_reorient)
         image = ItkIO.pack2img(image_np, metadata.affine, is_vector)
+        metadata.convert(orig_coord_sys)
         image, _ = ItkIO.reorient(image, desired_ornt)
         return image
 
@@ -138,7 +140,7 @@ class ItkIO:
     @staticmethod
     def itk_img_to_array(img_itk):
         """Swap the axes to the usual x, y, z convention in RAI orientation (originally z, y, x)"""
-        img_array = itk.array_from_image(img_itk).copy().T  # the transpose here is equivalent to keep_axes=True
+        img_array = itk.array_from_image(img_itk).T  # the transpose here is equivalent to keep_axes=True
         return img_array
 
     @staticmethod
