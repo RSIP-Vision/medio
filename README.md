@@ -44,12 +44,12 @@ The 3 main functions for reading and saving are:
 the case of a dicom series). It is the only required parameter.
   If the input path is s folder, it should contain a single dicom series.
 - Returns: (array, metadata) of types numpy.ndarray and medio.MetaData. The first is a numpy array of the 
-image, and the second is a metadata object of the image (see [MetaData](README.md#metadata) class documentation).
+image, and the second is a metadata object of the image (see [MetaData](#metadata) class documentation).
 
 Optional parameters:
 - `desired_ornt=None`: str of the desired orientation of the image e.g. 'RAI'. If None, no reorientation is performed.
   The desired orientation is in itk standard, even when the IO engine ("backend") is nibabel which uses a different 
-  standard (see [Orientation](README.md#orientation)).
+  standard (see [Orientation](#orientation)).
 - `backend=None`: str for the backend IO engine to be used: 'nib' (nibabel), 'itk' or 'pydicom' (also 'pdcm'). If None, 
 the backend is chosen automatically: 'nib' for nifti files ('.nii' or '.nii.gz' suffix), otherwise 'itk'.
 - `dtype=None`: if not None, equivalent to `array.astype(dtype)` on the returned image array.
