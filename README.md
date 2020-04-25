@@ -69,21 +69,21 @@ Other common pixel types are: `itk.UC` - uint8, `itk.US` - uint16.
 then the channels are stacked along the last axis of the image array.
 
 - 'pydicom' backend
-  - `globber='*'`: relevant for a directory - globber for selecting the series files (all files by default)
+  - `globber='*'`: relevant for a directory - glob pattern for selecting the series files (all files by default)
 
 ### save_img
-`medio.save_img(filename, np_image, metadata, use_original_ornt=True, backend=None, dtype=None, mkdir=False, 
+`medio.save_img(filename, np_image, metadata, use_original_ornt=True, backend=None, dtype=None, mkdir=False,
 parents=False, **kwargs)`
 - `filename`: a path-like object of the file to be saved.
 - `np_image`: the image array.
 - `metadata`: the corresponding metadata.
 
 Optional parameters:
-- `use_original_ornt=True`: 
+- `use_original_ornt=True`: whether to save in the original orientation stored in metadata.orig_ornt or not.
 - `backend=None`: str of the backend to use: 'nib' or 'itk'. If None, 'nib' is chosen for nifti files and 'itk' 
 otherwise.
-- `dtype=None`: if not None, equivalent to passing `np_image.astype(dtype)`. Note that not every dtype is supported, so
-make sure what the dtype of the image array you want to save.
+- `dtype=None`: if not None, equivalent to passing `np_image.astype(dtype)`. Note that not every dtype is supported 
+in saving, so make sure what is the dtype of the image array you want to save.
 - `mkdir=False`: if True, creates the directory of `filename`.
 - `parents=False`: to be used with `mkdir=True`. If True, creates also the parent directories. 
 
@@ -92,13 +92,12 @@ make sure what the dtype of the image array you want to save.
 first dimension of `np_image`. 
 - `allow_dcm_reorient=False`: when saving a dicom file ('.dcm' or '.dicom' suffix) the image orientation should be 
 right-handed. If it is left-handed, the image can be reoriented to a right-handed orientation with setting this 
-parameter to True.
-`allow_dcm_reorient=True`, which flips the last axis orientation.
-- `compression=False`: whether to use compression in itk writer. Note that you do not have to set it to True if you use
-'.nii.gz' `filename`, for example.
+parameter to True, which flips the last axis direction.
+- `compression=False`: whether to use compression in itk writer. Using a '.nii.gz' suffix in `filename` also compresses 
+the image.
 
 ### save_dir
-Save 3d image as a dicom series of 2d slices in a directory (itk backend).
+Save a 3d image as dicom series of 2d slices in a directory (itk backend).
 
 `medio.save_dir(dirname, np_image, metadata, use_original_ornt=True, dtype=None, parents=False, 
 allow_dcm_reorient=False, **kwargs)`
@@ -109,12 +108,13 @@ Save a 3d numpy array image_np as a dicom series of 2d dicom slices in the direc
 - `metadata`: the corresponding metadata
 
 Optional parameters, see also in [save_img](#save_img):
-- `use_original_ornt`: whether to save in the original orientation or not.
-- `parents`: if True, creates also the parents of dirname.
-- `allow_dcm_reorient`: whether to allow automatic reorientation to a right-handed orientation or not.
+- `use_original_ornt=True`: whether to save in the original orientation or not.
+- `dtype=None`: if not None, equivalent to passing `np_image.astype(dtype)`.
+- `parents=False`: if True, creates also the parents of `dirname`.
+- `allow_dcm_reorient=False`: whether to allow automatic reorientation to a right-handed orientation or not.
 
 Additional optional parameters (`**kwargs`): 
-- `pattern='IM{}.dcm'`: str pattern for the filenames to save, including a placeholder ('{}') for the slice number
+- `pattern='IM{}.dcm'`: str pattern for the filenames to save, including a placeholder ('`{}`') for the slice number.
 - `metadata_dict=None`: dictionary of metadata for adding tags or overriding the default values. For example, 
 `metadata_dict={'0008|0060': 'US'}` will override the default 'CT' modality and set it to 'US' (ultrasound).
 
@@ -129,7 +129,7 @@ The Affine class is a subclass of numpy.ndarray with some special properties (at
 This class includes also some static methods for affine construction from its components (spacing, origin and direction)
 and also the inverse methods for getting the spacing, origin and direction matrix from a general affine matrix.
 
-For a mathematical explanation about affine see 
+For a mathematical explanation about the affine matrix see 
 [NiBabel's affine documentation](https://nipy.org/nibabel/coordinate_systems.html#the-affine-matrix-as-a-transformation-between-spaces).
 
 Some usage examples:
@@ -149,14 +149,14 @@ Some usage examples:
 
 Together with the image's numpy array, the MetaData object is a necessary component for the I/O functions.
 
-A MetaData object 'metadata' is mainly comprised of
-- `metadata.affine` the affine (of class Affine)
-- `metadata.coord_sys` coordinate system ('itk' or 'nib') 
-- `metadata.orig_ornt` the original orientation of the image (used for saving)
+A MetaData object 'metadata' is mainly comprised of:
+- `metadata.affine`: the affine (of class Affine)
+- `metadata.coord_sys`: coordinate system ('itk' or 'nib') 
+- `metadata.orig_ornt`: the original orientation of the image (used for saving)
 
 Other properties of the metadata are derived from the affine:
-- `metadata.spacing` voxels spacing (a reference to `metadata.affine.spacing`) 
-- `metadata.ornt` the current image orientation
+- `metadata.spacing`: voxels spacing (a reference to `metadata.affine.spacing`) 
+- `metadata.ornt`: the current image orientation (also depends on the coordinate system)
 
 All these properties can be viewed easily in the console:
 ```python
@@ -173,16 +173,16 @@ Coordinate system: nib
 Orientation: LAS
 Original orientation: LAS
 ```
-A MetaData object has also the method `metadata.is_right_handed_ornt` which checks for a right handed orientation,
-according to the determinant of the direction matrix of the affine (`metadata.affine.direction`). This method can be 
-useful before saving a dicom file or series, which should have a right-handed orientation.
+The MetaData method `metadata.is_right_handed_ornt()` checks for a right handed orientation according to the determinant 
+of the direction matrix (`metadata.affine.direction`). This method can be useful before saving a dicom file or series, 
+which should have a right-handed orientation.
 
 #### Orientation
 The orientation of a 3d image is string of length 3 which is derived from its affine and coordinate system (the 
 convention). It denotes along which physical axis we move when we increase a single index out of `i, j, k` in the 
 expression `np_image[i, j, k]`.
 
-'RAS' in itk:
+For example, 'RAS' orientation in itk:
 - Right to left, Anterior to posterior, Superior to inferior
 
 'RAS' in nib - also 'RAS+':
@@ -195,10 +195,10 @@ For further discussion see
 [NiBabel's image orientation documentation](https://nipy.org/nibabel/image_orientation.html#image-voxel-orientation).
 
 ## Array and Metadata Operations
-Some of the operations on an image affects also its metadata, for example resizing, rotating and cropping.
+Some operations on an image affect also its metadata, for example resizing, rotations and cropping.
 
-The class MedImg (`medio.medimg.medimg.MedImg`) holds image array with its metadata, and supports some of these 
-operations through the slicing syntax:
+The class MedImg (`medio.medimg.medimg.MedImg`) holds an image array with its metadata, and supports some of these 
+operations through the indexing syntax:
 ```python
 >>> from medio.medimg.medimg import MedImg
 >>> mimg = MedImg(np_image, metadata)
