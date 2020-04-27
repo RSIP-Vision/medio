@@ -99,13 +99,13 @@ the image.
 ### save_dir
 Save a 3d image as dicom series of 2d slices in a directory (itk backend).
 
-`medio.save_dir(dirname, np_image, metadata, use_original_ornt=True, dtype=None, parents=False, 
+`medio.save_dir(dirname, np_image, metadata, use_original_ornt=True, dtype=None, parents=False,
 allow_dcm_reorient=False, **kwargs)`
 
 Save a 3d numpy array image_np as a dicom series of 2d dicom slices in the directory dirname
-- `dirname`: the directory to save in the files, str or pathlib.Path. If it exists - must be empty
-- `image_np`: the image numpy array
-- `metadata`: the corresponding metadata
+- `dirname`: the directory to save the files in, str or pathlib.Path. If it exists - must be empty.
+- `np_image`: the image array.
+- `metadata`: the corresponding metadata.
 
 Optional parameters, see also in [save_img](#save_img):
 - `use_original_ornt=True`: whether to save in the original orientation or not.
