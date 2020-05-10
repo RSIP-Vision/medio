@@ -24,6 +24,7 @@ setup(name='medio',
             'pydicom >= 1.4.2',
             'numpy >= 1.18.1'
       ],
+      python_requires='>=3.6',
       classifiers=[
             'Development Status :: 3 - Alpha',
 
