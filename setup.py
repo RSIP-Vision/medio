@@ -26,7 +26,7 @@ setup(name='medio',
       ],
       python_requires='>=3.6',
       classifiers=[
-            'Development Status :: 3 - Alpha',
+            'Development Status :: 4 - Beta',
 
             'Intended Audience :: Developers',
             'Intended Audience :: Healthcare Industry',
@@ -35,6 +35,11 @@ setup(name='medio',
             'Topic :: Software Development :: Libraries :: Python Modules',
 
             'Programming Language :: Python :: 3',
+            'Programming Language :: Python :: 3 :: Only',
+            'Programming Language :: Python :: 3.6',
+            'Programming Language :: Python :: 3.7',
+            'Programming Language :: Python :: 3.8',
+            'Programming Language :: Python :: 3.9',
             'Operating System :: OS Independent'
       ],
       zip_safe=True)
