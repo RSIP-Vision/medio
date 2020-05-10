@@ -12,11 +12,11 @@ def convert_ds(dataset):
     >>> print(ds.PixelSpacing)
     """
     if hasattr(dataset, 'SharedFunctionalGroupsSequence') and len(dataset.SharedFunctionalGroupsSequence) > 0:
-        dataset.__class__ = FramedFileDataset
+        dataset.__class__ = MultiFrameFileDataset
     return dataset
 
 
-class FramedFileDataset(FileDataset):
+class MultiFrameFileDataset(FileDataset):
     """This class enables shorter access to basic properties of pydicom dataset of a certain type"""
     @property
     def ImageOrientationPatient(self):
@@ -27,11 +27,12 @@ class FramedFileDataset(FileDataset):
         return self.SharedFunctionalGroupsSequence[0].PixelMeasuresSequence[0].PixelSpacing
 
     @property
+    def SpacingBetweenSlices(self):
+        return self.SharedFunctionalGroupsSequence[0].PixelMeasuresSequence[0].SpacingBetweenSlices
+
+    @property
     def SliceThickness(self):
-        try:
-            return self.SharedFunctionalGroupsSequence[0].PixelMeasuresSequence[0].SliceThickness
-        except AttributeError:
-            return self.SharedFunctionalGroupsSequence[0].PixelMeasuresSequence[0].SpacingBetweenSlices
+        return self.SharedFunctionalGroupsSequence[0].PixelMeasuresSequence[0].SliceThickness
 
     @property
     def RescaleIntercept(self):

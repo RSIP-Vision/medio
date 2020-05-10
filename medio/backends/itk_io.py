@@ -278,11 +278,9 @@ class ItkIO:
         # Study Instance UID
         mdict['0020|000d'] = str(uuid1())
 
-        # Pixel Spacing - TODO: maybe not necessary? automatically saved
+        # Pixel Spacing - TODO: not necessary - automatically saved
         spacing = image.GetSpacing()
         mdict['0028|0030'] = f'{spacing[0]}\\{spacing[1]}'
-        # Slice Thickness
-        mdict['0018|0050'] = str(spacing[2])
         # Spacing Between Slices
         mdict['0018|0088'] = str(spacing[2])
         # Image Orientation (Patient)

@@ -5,7 +5,7 @@ from dicom_numpy import combine_slices
 
 from medio.backends.pdcm_unpack_ds import unpack_dataset
 from medio.metadata.metadata import MetaData
-from medio.metadata.pdcm_ds import convert_ds, FramedFileDataset
+from medio.metadata.pdcm_ds import convert_ds, MultiFrameFileDataset
 
 
 class PdcmIO:
@@ -65,7 +65,7 @@ class PdcmIO:
         ds = pydicom.dcmread(template_filename)
         ds = convert_ds(ds)
         if not keep_rescale:
-            if isinstance(ds, FramedFileDataset):
+            if isinstance(ds, MultiFrameFileDataset):
                 ds.del_intensity_trans()
             else:
                 del ds.RescaleSlope

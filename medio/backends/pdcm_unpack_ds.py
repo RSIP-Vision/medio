@@ -91,7 +91,8 @@ def _ijk_to_patient_xyz_transform_matrix(dataset):
     row_cosine, column_cosine, slice_cosine = _extract_cosines(image_orientation)
 
     row_spacing, column_spacing = dataset.PixelSpacing
-    slice_spacing = float(getattr(dataset, 'SliceThickness', 0))
+    # TODO: add calculation based on dataset.slice_positions and slice_cosine
+    slice_spacing = getattr(dataset, 'SpacingBetweenSlices', 0)
 
     transform = np.identity(4, dtype=np.float32)
 
