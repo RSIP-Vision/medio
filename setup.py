@@ -29,7 +29,9 @@ setup(name='medio',
             'Development Status :: 4 - Beta',
 
             'Intended Audience :: Developers',
+            'Intended Audience :: Education',
             'Intended Audience :: Healthcare Industry',
+            'Intended Audience :: Science/Research',
 
             'Topic :: Scientific/Engineering :: Medical Science Apps.',
             'Topic :: Software Development :: Libraries :: Python Modules',
@@ -40,6 +42,7 @@ setup(name='medio',
             'Programming Language :: Python :: 3.7',
             'Programming Language :: Python :: 3.8',
             'Programming Language :: Python :: 3.9',
+
             'Operating System :: OS Independent'
       ],
       zip_safe=True)
