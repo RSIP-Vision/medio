@@ -227,7 +227,7 @@ class ItkIO:
 
     @staticmethod
     def save_dcm_dir(dirname, image_np, metadata, use_original_ornt=True, parents=False, allow_dcm_reorient=False,
-                     **kwargs):
+                     is_vector=False, **kwargs):
         """
         Save a 3d numpy array image_np as a dicom series of 2d dicom slices in the directory dirname
         :param dirname: the directory to save in the files, str or pathlib.Path. If it exists - must be empty
@@ -238,7 +238,7 @@ class ItkIO:
         :param allow_dcm_reorient: whether to allow automatic reorientation to a right-handed orientation or not
         :param kwargs: optional kwargs passed to ItkIO.dcm_metadata: pattern, metadata_dict
         """
-        image = ItkIO.prepare_image(image_np, metadata, use_original_ornt, is_dcm=True,
+        image = ItkIO.prepare_image(image_np, metadata, use_original_ornt, is_vector=is_vector, is_dcm=True,
                                     allow_dcm_reorient=allow_dcm_reorient)
         image_type = type(image)
         _, (pixel_type, _) = itk.template(image)
