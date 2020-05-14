@@ -49,6 +49,7 @@ for ornt in ornt_list:
     state_dict['RGB saved orientation'], state_dict['RGB success'] = get_saved_ornt(img_rgb, ornt)
     df = df.append(state_dict, ignore_index=True)
 
+df.sort_values('Right/Left-handed orientation', ascending=False, inplace=True)
 df.to_csv('itk_dcm_orientations.csv', index=False)
 
 right_handed = np.array(df['Right/Left-handed orientation'] == 'R')

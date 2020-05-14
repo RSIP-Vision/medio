@@ -20,7 +20,7 @@ ornt_iter = itertools.chain(
          itertools.product(('R', 'L'), ('A', 'P'), ('I', 'S'))
          ))
 
-# two way dictionary that translates itk orientation codes to direction matrices
+# dictionary that translates itk orientation codes to direction matrices
 ornt_direction_dict = dict()
 ornt_list = []
 
