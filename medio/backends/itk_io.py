@@ -162,17 +162,18 @@ class ItkIO:
     @staticmethod
     def pack2img(image_np, affine, is_vector=False):
         image = ItkIO.array_to_itk_img(image_np, is_vector)
+        dimension = image.GetImageDimension()
         direction_arr, spacing, origin = affine.direction, affine.spacing, affine.origin
 
         # setting metadata
-        spacing_vec = itk.Vector[itk.D, ItkIO.dimension]()
+        spacing_vec = itk.Vector[itk.D, dimension]()
         spacing_vec.SetVnlVector(itk.vnl_vector_from_array(spacing.astype('float')))
         image.SetSpacing(spacing_vec)
 
         image.SetOrigin(origin.astype('float'))
 
         direction_mat = itk.vnl_matrix_from_array(direction_arr.astype('float'))
-        direction = itk.Matrix[itk.D, ItkIO.dimension, ItkIO.dimension](direction_mat)
+        direction = itk.Matrix[itk.D, dimension, dimension](direction_mat)
         image.SetDirection(direction)
 
         return image
