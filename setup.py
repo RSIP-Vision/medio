@@ -20,7 +20,7 @@ setup(name='medio',
             'itk-io >= 5.0.1',
             'itk-filtering >= 5.0.1',
             'nibabel >= 3.0.2',
-            'dicom-numpy >= 0.3.0',
+            'dicom-numpy >= 0.4.0',
             'pydicom >= 1.4.2',
             'numpy >= 1.18.1'
       ],

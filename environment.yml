@@ -12,4 +12,4 @@ dependencies:
   - pydicom >= 1.4.2
   - pip >= 20.0.2
   - pip:
-    - dicom-numpy >= 0.3.0
+    - dicom-numpy >= 0.4.0
