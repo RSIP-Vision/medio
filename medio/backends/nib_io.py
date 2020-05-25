@@ -21,8 +21,8 @@ class NibIO:
         """
         img_struct = nib.load(input_path)
         orig_ornt_str = ''.join(nib.aff2axcodes(img_struct.affine))
-        if (desired_axcodes is not None) and orig_ornt_str != desired_axcodes:
-            img_struct = NibIO.reorient(img_struct, desired_axcodes)  # reorient only if needed
+        if desired_axcodes is not None:
+            img_struct = NibIO.reorient(img_struct, desired_axcodes)
         img = np.asanyarray(img_struct.dataobj)
         if unravel:
             img = NibIO.unravel_array(img)
@@ -43,9 +43,8 @@ class NibIO:
         metadata.convert(NibIO.coord_sys)
         img_struct = nib.Nifti1Image(img, metadata.affine)
         desired_axcodes = metadata.orig_ornt if use_original_ornt else None
-        if desired_axcodes is not None and desired_axcodes != metadata.ornt:  # if not needed, do not reorient also in saving
-            img_struct = NibIO.reorient(img_struct, desired_axcodes)
         metadata.convert(orig_coord_sys)
+        img_struct = NibIO.reorient(img_struct, desired_axcodes)
         nib.save(img_struct, filename)
 
     @staticmethod
