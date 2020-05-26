@@ -4,6 +4,7 @@ from uuid import uuid1
 
 import itk
 import numpy as np
+from itkTemplate import TemplateTypeError
 
 from medio.metadata.affine import Affine
 from medio.metadata.itk_orientation import itk_orientation_code, codes_str_dict
@@ -318,3 +319,59 @@ class ItkIO:
             filenames += [str(Path(dirname) / pattern.format(i + 1))]
 
         return mdict_list, filenames
+
+
+# TODO: remove imread below when itk.imread is updated in itk release
+def imread(filename, pixel_type=None, fallback_only=False):
+    """Read an image from a file or series of files and return an itk.Image.
+    The reader is instantiated with the image type of the image file if
+    `pixel_type` is not provided (default). The dimension of the image is
+    automatically found. If the given filename is a list or a tuple, the
+    reader will use an itk.ImageSeriesReader object to read the files.
+    If `fallback_only` is set to `True`, `imread()` will first try to
+    automatically deduce the image pixel_type, and only use the given
+    `pixel_type` if automatic deduction fails. Failures typically
+    happen if the pixel type is not supported (e.g. it is not currently
+    wrapped).
+
+    This function is adapted from:
+    ITK/Wrapping/Generators/Python/itkExtras.py
+    The change from there is to accept also TemplateTypeError, making the flag fallback_only=True a legitimate default
+    together with some default pixel type, e.g. pixel_type=itk.SS
+    """
+    # import itk  # originally in the itk - commented out here
+    if fallback_only:
+        if pixel_type is None:
+            raise Exception("pixel_type must be set when using the fallback_only option")
+        try:
+            return imread(filename)
+        except (KeyError, TemplateTypeError):  # the change from itk's source, originally: `except KeyError:`
+            pass
+    if type(filename) in [list, tuple]:
+        TemplateReaderType = itk.ImageSeriesReader
+        io_filename = filename[0]
+        increase_dimension = True
+        kwargs = {'FileNames': filename}
+    else:
+        TemplateReaderType = itk.ImageFileReader
+        io_filename = filename
+        increase_dimension = False
+        kwargs = {'FileName': filename}
+    if pixel_type:
+        # imageIO = itk.ImageIOFactory.CreateImageIO(io_filename, itk.CommonEnums.IOFileMode_ReadMode)
+        read_mode = 0
+        imageIO = itk.ImageIOFactory.CreateImageIO(io_filename, read_mode)
+        if not imageIO:
+            raise RuntimeError("No ImageIO is registered to handle the given file.")
+        imageIO.SetFileName(io_filename)
+        imageIO.ReadImageInformation()
+        dimension = imageIO.GetNumberOfDimensions()
+        # Increase dimension if last dimension is not of size one.
+        if increase_dimension and imageIO.GetDimensions(dimension-1) != 1:
+            dimension += 1
+        ImageType = itk.Image[pixel_type, dimension]
+        reader = TemplateReaderType[ImageType].New(**kwargs)
+    else:
+        reader = TemplateReaderType.New(**kwargs)
+    reader.Update()
+    return reader.GetOutput()
