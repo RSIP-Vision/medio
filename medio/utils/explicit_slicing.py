@@ -13,7 +13,7 @@ def explicit_inds(key, shape):
         elif isinstance(k, slice):
             start[i], stop[i], stride[i] = k.indices(shape[i])
         else:
-            raise NotImplementedError(f'The indexing key \'{k}\' is not supported.')
+            raise NotImplementedError(f'The indexing key "{k}" is not supported.')
 
     i = 0
     for k in key:

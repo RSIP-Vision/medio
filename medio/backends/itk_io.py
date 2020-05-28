@@ -38,7 +38,7 @@ class ItkIO:
         elif input_path.is_file():
             img = ItkIO.read_img_file(str(input_path), pixel_type=pixel_type, fallback_only=fallback_only)
         else:
-            raise FileNotFoundError(f'No such file or directory: \'{input_path}\'')
+            raise FileNotFoundError(f'No such file or directory: "{input_path}"')
         img, original_ornt_code = ItkIO.reorient(img, desired_axcodes)
         image_np, affine = ItkIO.unpack_img(img)
         ornt_str = codes_str_dict[original_ornt_code]
@@ -212,9 +212,10 @@ class ItkIO:
         series_uid = names_generator.GetSeriesUIDs()
 
         if len(series_uid) == 0:
-            raise FileNotFoundError(f'No DICOMs in: \'{dirname}\'')
+            raise FileNotFoundError(f'No DICOMs in: "{dirname}"')
         if len(series_uid) > 1:
-            raise OSError(f'The directory: \'{dirname}\'\ncontains more than one DICOM series')
+            raise OSError(f'The directory: "{dirname}"\n'
+                          f'contains more than one DICOM series')
 
         series_identifier = series_uid[0]
         filenames = names_generator.GetFileNames(series_identifier)

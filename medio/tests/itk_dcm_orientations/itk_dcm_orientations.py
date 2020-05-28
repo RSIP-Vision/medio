@@ -59,4 +59,4 @@ rai_ornt = np.array(df['Orientation'] == 'RAI')
 
 print('Right-handed == Success:', np.array_equal(right_handed, success))
 print('Right-handed == RGB success:', np.array_equal(right_handed, rgb_success))
-print('\'RAI\' orientation == RGB success:', np.array_equal(rai_ornt, rgb_success))
+print('"RAI" orientation == RGB success:', np.array_equal(rai_ornt, rgb_success))

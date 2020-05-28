@@ -30,4 +30,4 @@ def make_empty_dir(dir_path, parents=False):
         except StopIteration:
             pass  # the directory exists but empty - ok
         else:
-            raise FileExistsError(f'The directory \'{dir_path}\' is not empty')
+            raise FileExistsError(f'The directory "{dir_path}" is not empty')

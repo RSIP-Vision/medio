@@ -39,7 +39,7 @@ class PdcmIO:
         # find all dicom files within the specified folder, read every file separately and sort them by InstanceNumber
         files = list(Path(input_dir).glob(globber))
         if len(files) == 0:
-            raise FileNotFoundError(f'Received an empty directory: \'{input_dir}\'')
+            raise FileNotFoundError(f'Received an empty directory: "{input_dir}"')
         elif len(files) == 1:
             return PdcmIO.read_dcm_file(files[0])
         slices = [pydicom.dcmread(str(filename)) for filename in files]

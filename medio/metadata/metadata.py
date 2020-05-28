@@ -25,7 +25,7 @@ class MetaData:
     @staticmethod
     def check_valid_coord_sys(coord_sys):
         if coord_sys not in ('itk', 'nib'):
-            raise ValueError('Metadata coord_sys must be \'itk\' or \'nib\'')
+            raise ValueError('Metadata coord_sys must be "itk" or "nib"')
 
     def __repr__(self):
         return (f'Affine:\n'
@@ -52,7 +52,7 @@ class MetaData:
         elif self.coord_sys == 'itk':
             ornt_tup = inv_axcodes(aff2axcodes(convert_affine(self.affine)))
         else:
-            raise ValueError(f'Unknown coord_sys: \'{self.coord_sys}\'')
+            raise ValueError(f'Invalid coord_sys: "{self.coord_sys}"')
         ornt_str = ''.join(ornt_tup)
         return ornt_str
 
@@ -90,7 +90,7 @@ def is_right_handed_axcodes(axcodes):
     u, v, n = [letter_vec_dict[letter] for letter in axcodes]
     ornt_sign = np.dot(np.cross(u, v), n)
     if ornt_sign not in (-1, 1):
-        raise ValueError(f'Invalid axcodes: \'{axcodes}\'')
+        raise ValueError(f'Invalid axcodes: "{axcodes}"')
     return ornt_sign == 1
 
 
@@ -117,7 +117,7 @@ def check_dcm_ornt(desired_ornt, metadata, allow_dcm_reorient=False):
         if allow_dcm_reorient:
             return right_handed_ornt
         else:
-            raise ValueError(f'The desired orientation \'{desired_ornt}\' is left handed, whereas saving dicom is '
+            raise ValueError(f'The desired orientation "{desired_ornt}" is left handed, whereas saving dicom is '
                              f'possible only with a right handed orientation. \nYou can either pass the saver '
                              f'parameter allow_dcm_reorient=True to allow automatic reorientation (in this case to '
-                             f'\'{right_handed_ornt}\'), or \nreorient yourself before saving the image as a dicom.')
+                             f'"{right_handed_ornt}"), or \nreorient yourself before saving the image as a dicom.')

@@ -36,7 +36,7 @@ def read_img(input_path, desired_ornt=None, backend=None, dtype=None, **kwargs):
                                           'desired orientation must be None (default).')
             reader = pdcm_reader
         else:
-            raise ValueError('The backend argument must be one of: \'itk\', \'nib\', \'pdcm\' (or \'pydicom\'), None')
+            raise ValueError('The backend argument must be one of: "itk", "nib", "pdcm" (or "pydicom"), None')
 
     if reader == nib_reader:
         desired_ornt = inv_axcodes(desired_ornt)
@@ -77,7 +77,7 @@ def save_img(filename, np_image, metadata, use_original_ornt=True, backend=None,
         elif backend == 'itk':
             writer = itk_writer
         else:
-            raise ValueError('The backend argument must be one of: \'itk\', \'nib\', None')
+            raise ValueError('The backend argument must be one of: "itk", "nib", None')
     if mkdir:
         Path(filename).parent.mkdir(parents=parents, exist_ok=True)
     if dtype is not None:
