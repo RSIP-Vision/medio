@@ -39,11 +39,18 @@ class ItkIO:
             img = ItkIO.read_img_file(str(input_path), pixel_type, fallback_only)
         else:
             raise FileNotFoundError(f'No such file or directory: "{input_path}"')
-        img, original_ornt_code = ItkIO.reorient(img, desired_axcodes)
-        image_np, affine = ItkIO.unpack_img(img)
-        ornt_str = codes_str_dict[original_ornt_code]
-        metadata = MetaData(affine=affine, orig_ornt=ornt_str, coord_sys=ItkIO.coord_sys)
-        return image_np, metadata
+
+        affine = ItkIO.get_img_aff(img)
+        metadata = MetaData(affine=affine, coord_sys=ItkIO.coord_sys)
+        orig_ornt = metadata.ornt
+        if desired_axcodes == orig_ornt:
+            image_np = ItkIO.itk_img_to_array(img)
+            return image_np, metadata
+        else:
+            img, _ = ItkIO.reorient(img, desired_axcodes)
+            image_np, affine = ItkIO.unpack_img(img)
+            metadata = MetaData(affine=affine, orig_ornt=orig_ornt, coord_sys=ItkIO.coord_sys)
+            return image_np, metadata
 
     @staticmethod
     def save_img(filename, image_np, metadata, use_original_ornt=True, is_vector=False, allow_dcm_reorient=False,
@@ -152,16 +159,27 @@ class ItkIO:
     @staticmethod
     def unpack_img(img):
         image_np = ItkIO.itk_img_to_array(img)
-        # metadata
+        affine = ItkIO.get_img_aff(img)
+        return image_np, affine
+
+    @staticmethod
+    def get_img_aff(img):
         direction = itk.array_from_vnl_matrix(img.GetDirection().GetVnlMatrix().as_matrix())
         spacing = itk.array_from_vnl_vector(img.GetSpacing().GetVnlVector())
         origin = itk.array_from_vnl_vector(img.GetOrigin().GetVnlVector())
-        affine = Affine(direction=direction, spacing=spacing, origin=origin)
-        return image_np, affine
+        return Affine(direction=direction, spacing=spacing, origin=origin)
 
     @staticmethod
     def pack2img(image_np, affine, is_vector=False):
         image = ItkIO.array_to_itk_img(image_np, is_vector)
+        ItkIO.set_img_aff(image, affine)
+        return image
+
+    @staticmethod
+    def set_img_aff(image, affine):
+        if not isinstance(affine, Affine):
+            affine = Affine(affine)
+
         dimension = image.GetImageDimension()
         direction_arr, spacing, origin = affine.direction, affine.spacing, affine.origin
 
@@ -175,8 +193,6 @@ class ItkIO:
         direction_mat = itk.vnl_matrix_from_array(direction_arr.astype('float'))
         direction = itk.Matrix[itk.D, dimension, dimension](direction_mat)
         image.SetDirection(direction)
-
-        return image
 
     @staticmethod
     def reorient(img, desired_orientation: Union[int, tuple, str, None]):
