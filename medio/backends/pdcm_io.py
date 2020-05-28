@@ -1,9 +1,9 @@
 from pathlib import Path
 
 import pydicom
-from dicom_numpy import combine_slices
 
 from medio.backends.pdcm_unpack_ds import unpack_dataset
+from medio.backends.dicom_numpy_src import combine_slices
 from medio.metadata.metadata import MetaData
 from medio.metadata.pdcm_ds import convert_ds, MultiFrameFileDataset
 
