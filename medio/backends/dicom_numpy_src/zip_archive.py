@@ -2,14 +2,10 @@ import zipfile
 import logging
 import tempfile
 
-try:
-    import pydicom as dicom
-except ImportError:
-    import dicom
+import pydicom
 
 from .exceptions import DicomImportException
 from .combine_slices import combine_slices
-
 
 logger = logging.getLogger(__name__)
 
@@ -46,9 +42,9 @@ def dicom_datasets_from_zip(zip_file):
         temp_file.seek(0)
 
         try:
-            dataset = dicom.read_file(temp_file)
+            dataset = pydicom.read_file(temp_file)
             datasets.append(dataset)
-        except dicom.errors.InvalidDicomError as e:
+        except pydicom.errors.InvalidDicomError as e:
             msg = 'Skipping invalid DICOM file "{}": {}'
             logger.info(msg.format(entry, e))
 

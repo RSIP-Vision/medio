@@ -1,10 +1,9 @@
 import logging
+from math import isclose
 
 import numpy as np
 
-from .utils import isclose
 from .exceptions import DicomImportException
-
 
 logger = logging.getLogger(__name__)
 
