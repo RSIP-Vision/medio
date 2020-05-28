@@ -145,3 +145,6 @@ static
 
 # JetBrains (PyCharm)
 .idea/
+
+# Git mergetool
+*.orig
