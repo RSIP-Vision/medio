@@ -20,7 +20,7 @@ class ItkIO:
     image_type = itk.Image[pixel_type, dimension]
 
     @staticmethod
-    def read_img(input_path, desired_axcodes=None, pixel_type=pixel_type, fallback_only=False, dimension=dimension):
+    def read_img(input_path, desired_axcodes=None, pixel_type=pixel_type, fallback_only=True):
         """
         The main reader function, reads images and performs reorientation and unpacking
         :param input_path: path of image file or directory containing dicom series
@@ -34,9 +34,9 @@ class ItkIO:
         """
         input_path = Path(input_path)
         if input_path.is_dir():
-            img = ItkIO.read_dcm_dir(str(input_path), image_type=itk.Image[pixel_type, dimension])
+            img = ItkIO.read_dir(str(input_path), pixel_type, fallback_only)
         elif input_path.is_file():
-            img = ItkIO.read_img_file(str(input_path), pixel_type=pixel_type, fallback_only=fallback_only)
+            img = ItkIO.read_img_file(str(input_path), pixel_type, fallback_only)
         else:
             raise FileNotFoundError(f'No such file or directory: "{input_path}"')
         img, original_ornt_code = ItkIO.reorient(img, desired_axcodes)
@@ -108,10 +108,9 @@ class ItkIO:
                                   'For negative values, try to save a dicom directory or use PdcmIO.save_arr2dcm_file')
 
     @staticmethod
-    def read_img_file(filename, pixel_type=pixel_type, fallback_only=False):
+    def read_img_file(filename, pixel_type=None, fallback_only=False):
         """Common pixel types: itk.SS (int16), itk.US (uint16), itk.UC (uint8)"""
-        image = itk.imread(filename, pixel_type, fallback_only=fallback_only)
-        return image
+        return itk_imread(filename, pixel_type, fallback_only)
 
     @staticmethod
     def read_img_file_long(filename, image_type=image_type):
@@ -197,7 +196,7 @@ class ItkIO:
         return reoriented_itk_img, original_orientation_code
 
     @staticmethod
-    def read_dcm_dir(dirname, image_type=image_type):
+    def read_dir(dirname, pixel_type=None, fallback_only=False):
         """
         Read a dicom directory. If there is more than one series in the directory an error is raised
         Shorter option for a single series (provided the slices order is known):
@@ -205,7 +204,7 @@ class ItkIO:
         """
         names_generator = itk.GDCMSeriesFileNames.New()
         names_generator.SetUseSeriesDetails(True)
-        names_generator.AddSeriesRestriction('0008|0021')
+        names_generator.AddSeriesRestriction('0008|0021')  # Series Date
         names_generator.SetGlobalWarningDisplay(False)
         names_generator.SetDirectory(dirname)
 
@@ -219,15 +218,7 @@ class ItkIO:
 
         series_identifier = series_uid[0]
         filenames = names_generator.GetFileNames(series_identifier)
-        # TODO: use itk_imread from this module instead
-        reader = itk.ImageSeriesReader[image_type].New()
-        dicom_io = itk.GDCMImageIO.New()
-        reader.SetImageIO(dicom_io)
-        reader.SetFileNames(filenames)
-        reader.ForceOrthogonalDirectionOff()
-        reader.Update()
-        itk_img = reader.GetOutput()
-        return itk_img
+        return itk_imread(filenames, pixel_type, fallback_only)
 
     @staticmethod
     def save_dcm_dir(dirname, image_np, metadata, use_original_ornt=True, is_vector=False, parents=False,
@@ -374,6 +365,9 @@ def itk_imread(filename, pixel_type=None, fallback_only=False):
             dimension += 1
         ImageType = itk.Image[pixel_type, dimension]
         reader = TemplateReaderType[ImageType].New(**kwargs)
+        # TODO: consider
+        #  reader.ForceOrthogonalDirectionOff()
+        #  when 'FileNames' in kwargs
     else:
         reader = TemplateReaderType.New(**kwargs)
     reader.Update()
