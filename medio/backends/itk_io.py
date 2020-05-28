@@ -219,6 +219,7 @@ class ItkIO:
 
         series_identifier = series_uid[0]
         filenames = names_generator.GetFileNames(series_identifier)
+        # TODO: use itk_imread from this module instead
         reader = itk.ImageSeriesReader[image_type].New()
         dicom_io = itk.GDCMImageIO.New()
         reader.SetImageIO(dicom_io)
@@ -324,7 +325,7 @@ class ItkIO:
 
 
 # TODO: remove imread below when itk.imread is updated in itk release
-def imread(filename, pixel_type=None, fallback_only=False):
+def itk_imread(filename, pixel_type=None, fallback_only=False):
     """Read an image from a file or series of files and return an itk.Image.
     The reader is instantiated with the image type of the image file if
     `pixel_type` is not provided (default). The dimension of the image is
@@ -346,7 +347,7 @@ def imread(filename, pixel_type=None, fallback_only=False):
         if pixel_type is None:
             raise Exception("pixel_type must be set when using the fallback_only option")
         try:
-            return imread(filename)
+            return itk_imread(filename)
         except (KeyError, TemplateTypeError):  # the change from itk's source, originally: `except KeyError:`
             pass
     if type(filename) in [list, tuple]:
