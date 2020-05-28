@@ -7,9 +7,6 @@ channels:
 dependencies:
   - python >= 3.6
   - numpy >= 1.18.1
-  - itk >= 5.0.1
+  - itk == 5.0.1
   - nibabel >= 3.0.2
   - pydicom >= 1.4.2
-  - pip >= 20.0.2
-  - pip:
-    - dicom-numpy >= 0.3.0

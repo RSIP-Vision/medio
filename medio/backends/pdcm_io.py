@@ -1,9 +1,9 @@
 from pathlib import Path
 
 import pydicom
-from dicom_numpy import combine_slices
 
 from medio.backends.pdcm_unpack_ds import unpack_dataset
+from medio.backends.dicom_numpy_src import combine_slices
 from medio.metadata.metadata import MetaData
 from medio.metadata.pdcm_ds import convert_ds, MultiFrameFileDataset
 
@@ -30,7 +30,10 @@ class PdcmIO:
         """Read a single dicom file"""
         ds = pydicom.dcmread(str(filename))
         ds = convert_ds(ds)
-        img, affine = unpack_dataset(ds)
+        if ds.__class__ is MultiFrameFileDataset:
+            img, affine = unpack_dataset(ds)
+        else:
+            img, affine = combine_slices([ds])
         return img, PdcmIO.aff2meta(affine)
 
     @staticmethod
@@ -40,10 +43,8 @@ class PdcmIO:
         files = list(Path(input_dir).glob(globber))
         if len(files) == 0:
             raise FileNotFoundError(f'Received an empty directory: "{input_dir}"')
-        elif len(files) == 1:
-            return PdcmIO.read_dcm_file(files[0])
         slices = [pydicom.dcmread(str(filename)) for filename in files]
-        slices.sort(key=lambda x: int(x.InstanceNumber))
+        slices.sort(key=lambda x: x.InstanceNumber)
         img, affine = combine_slices(slices)
         return img, PdcmIO.aff2meta(affine)
 

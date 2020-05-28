@@ -4,7 +4,8 @@ This module is equivalent to dicom_numpy's module: combine_slices.py, but here f
 import logging
 
 import numpy as np
-from dicom_numpy.combine_slices import _validate_image_orientation, _extract_cosines, _requires_rescaling
+from medio.backends.dicom_numpy_src.combine_slices import (_validate_image_orientation, _extract_cosines,
+                                                           _requires_rescaling)
 
 logger = logging.getLogger(__name__)
 
@@ -91,14 +92,14 @@ def _ijk_to_patient_xyz_transform_matrix(dataset):
     row_cosine, column_cosine, slice_cosine = _extract_cosines(image_orientation)
 
     row_spacing, column_spacing = dataset.PixelSpacing
-    # TODO: add calculation based on dataset.slice_positions and slice_cosine
-    slice_spacing = getattr(dataset, 'SpacingBetweenSlices', 0)
+    # slice_spacing = dataset.get('SpacingBetweenSlices', 0)
 
     transform = np.identity(4, dtype=np.float32)
 
     transform[:3, 0] = row_cosine * column_spacing
     transform[:3, 1] = column_cosine * row_spacing
-    transform[:3, 2] = slice_cosine * slice_spacing
+    transform[:3, 2] = (np.array(dataset.slice_positions()[-1]) - dataset.slice_positions()[0]) / dataset.NumberOfFrames
+    # transform[:3, 2] = slice_cosine * slice_spacing
 
     transform[:3, 3] = dataset.ImagePositionPatient
 
