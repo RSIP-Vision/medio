@@ -40,6 +40,7 @@ class Affine(np.ndarray):
             self._spacing = np.asarray(spacing)
             self._direction = np.asarray(direction)
         else:
+            # TODO: reconsider calculating it here
             self._spacing = self.affine2spacing(self)
             self._direction = self.affine2direction(self, self.spacing)
 
