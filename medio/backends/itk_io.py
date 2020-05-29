@@ -7,7 +7,7 @@ import numpy as np
 from itkTemplate import TemplateTypeError
 
 from medio.metadata.affine import Affine
-from medio.metadata.itk_orientation import itk_orientation_code, codes_str_dict
+from medio.metadata.itk_orientation import itk_orientation_code
 from medio.metadata.metadata import MetaData, check_dcm_ornt
 from medio.utils.files import is_dicom, make_empty_dir
 
@@ -25,10 +25,8 @@ class ItkIO:
         The main reader function, reads images and performs reorientation and unpacking
         :param input_path: path of image file or directory containing dicom series
         :param desired_axcodes: string or tuple - e.g. 'LPI', ('R', 'A', 'S')
-        :param pixel_type: preferred itk pixel type for image files or dicom folders
-        :param fallback_only: used in itk.imread, relevant to files only. If True, finds the pixel_type automatically
-        and uses pixel_type only if failed
-        :param dimension: relevant to folders only. The dimension of the image to be read
+        :param pixel_type: preferred itk pixel type for the image
+        :param fallback_only: if True, finds the pixel_type automatically and uses pixel_type only if failed
         :return: numpy image and metadata object which includes pixdim, affine, original orientation string and
         coordinates system
         """
@@ -42,15 +40,17 @@ class ItkIO:
 
         affine = ItkIO.get_img_aff(img)
         metadata = MetaData(affine=affine, coord_sys=ItkIO.coord_sys)
-        orig_ornt = metadata.ornt
-        if desired_axcodes == orig_ornt:
+        if (desired_axcodes is None) or (desired_axcodes == metadata.ornt):
             image_np = ItkIO.itk_img_to_array(img)
-            return image_np, metadata
         else:
+            orig_ornt = metadata.ornt  # store the original orientation before the reorientation
             img, _ = ItkIO.reorient(img, desired_axcodes)
             image_np, affine = ItkIO.unpack_img(img)
             metadata = MetaData(affine=affine, orig_ornt=orig_ornt, coord_sys=ItkIO.coord_sys)
-            return image_np, metadata
+
+        return image_np, metadata
+        # mdict_itk = img.GetMetaDataDictionary()
+        # mdict = {key: mdict_itk[key] for key in mdict_itk.GetKeys()}
 
     @staticmethod
     def save_img(filename, image_np, metadata, use_original_ornt=True, is_vector=False, allow_dcm_reorient=False,
@@ -82,8 +82,9 @@ class ItkIO:
             # checking right-handed orientation before saving a dicom file/series
             desired_ornt = check_dcm_ornt(desired_ornt, metadata, allow_dcm_reorient=allow_dcm_reorient)
         image = ItkIO.pack2img(image_np, metadata.affine, is_vector)
+        if (desired_ornt is not None) and (desired_ornt != metadata.ornt):
+            image, _ = ItkIO.reorient(image, desired_ornt)
         metadata.convert(orig_coord_sys)
-        image, _ = ItkIO.reorient(image, desired_ornt)
         return image
 
     @staticmethod
@@ -131,7 +132,7 @@ class ItkIO:
 
     @staticmethod
     def save_img_file(image, filename, compression=False):
-        itk.imwrite(image, filename, compression=compression)
+        itk.imwrite(image, filename, compression)
 
     @staticmethod
     def save_img_file_long(image, filename, compression=False):
