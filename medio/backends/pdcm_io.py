@@ -48,7 +48,7 @@ class PdcmIO:
         if len(files) == 0:
             raise FileNotFoundError(f'Received an empty directory: "{input_dir}"')
         slices = [pydicom.dcmread(str(filename)) for filename in files]
-        slices.sort(key=lambda x: x.InstanceNumber)
+        slices.sort(key=lambda ds: ds.get('InstanceNumber', 0))
         img, affine = combine_slices(slices)
         metadata = PdcmIO.aff2meta(affine)
         return img, metadata
