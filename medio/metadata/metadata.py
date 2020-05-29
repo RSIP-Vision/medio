@@ -108,8 +108,6 @@ def check_dcm_ornt(desired_ornt, metadata, allow_dcm_reorient=False):
     # first set the desired orientation
     if desired_ornt is None:
         desired_ornt = metadata.ornt
-        # TODO: does it take time to apply reorient for the same orientation? (itk, nib also - for pydicom)
-        #  if desired_ornt == metadata.orig_ornt it can be set to None afterwards
     if is_right_handed_axcodes(desired_ornt):
         return desired_ornt
     else:
