@@ -12,21 +12,22 @@ class PdcmIO:
     coord_sys = 'itk'
 
     @staticmethod
-    def read_img(input_path, globber='*'):
+    def read_img(input_path, globber='*', header=False):
         """
         Read a dicom file or folder (series) and return the numpy array and the corresponding metadata
         :param input_path: path-like object (str or pathlib.Path) of the file or directory to read
         :param globber: relevant for a directory - globber for selecting the series files (all files by default)
+        :param header: whether to include a header attribute with additional metadata in the returned metadata
         :return: numpy array and metadata
         """
         input_path = Path(input_path)
         if input_path.is_dir():
             return PdcmIO.read_dcm_dir(input_path, globber)
         else:
-            return PdcmIO.read_dcm_file(input_path)
+            return PdcmIO.read_dcm_file(input_path, header)
 
     @staticmethod
-    def read_dcm_file(filename):
+    def read_dcm_file(filename, header=False):
         """Read a single dicom file"""
         ds = pydicom.dcmread(str(filename))
         ds = convert_ds(ds)
@@ -34,7 +35,10 @@ class PdcmIO:
             img, affine = unpack_dataset(ds)
         else:
             img, affine = combine_slices([ds])
-        return img, PdcmIO.aff2meta(affine)
+        metadata = PdcmIO.aff2meta(affine)
+        if header:
+            metadata.header = {str(key): ds[key] for key in ds.keys()}
+        return img, metadata
 
     @staticmethod
     def read_dcm_dir(input_dir, globber='*'):
@@ -46,7 +50,8 @@ class PdcmIO:
         slices = [pydicom.dcmread(str(filename)) for filename in files]
         slices.sort(key=lambda x: x.InstanceNumber)
         img, affine = combine_slices(slices)
-        return img, PdcmIO.aff2meta(affine)
+        metadata = PdcmIO.aff2meta(affine)
+        return img, metadata
 
     @staticmethod
     def aff2meta(affine):

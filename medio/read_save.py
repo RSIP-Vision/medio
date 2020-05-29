@@ -7,7 +7,7 @@ from medio.metadata.convert_nib_itk import inv_axcodes
 from medio.utils.files import is_nifti
 
 
-def read_img(input_path, desired_ornt=None, backend=None, dtype=None, **kwargs):
+def read_img(input_path, desired_ornt=None, backend=None, dtype=None, header=False, **kwargs):
     """
     Read medical image with nibabel or itk
     :param input_path: str or os.PathLike, the input path of image file or a directory containing dicom series
@@ -15,6 +15,8 @@ def read_img(input_path, desired_ornt=None, backend=None, dtype=None, **kwargs):
     The desired_ornt string is in itk standard (if NibIO is used, the orientation is converted accordingly)
     :param backend: optional parameter for setting the reader backend: 'itk', 'nib', 'pdcm' (also 'pydicom') or None
     :param dtype: equivalent to np_image.astype(dtype) if dtype is not None
+    :param header: if True, the returned metadata will include a header attribute with additional metadata dictionary as
+    read by the backend. Note: currently, this is supported for files only
     :return: numpy image and metadata object
     """
     nib_reader = NibIO.read_img
@@ -42,9 +44,9 @@ def read_img(input_path, desired_ornt=None, backend=None, dtype=None, **kwargs):
         desired_ornt = inv_axcodes(desired_ornt)
 
     if reader is pdcm_reader:
-        np_image, metadata = reader(input_path, **kwargs)
+        np_image, metadata = reader(input_path, header=header, **kwargs)
     else:
-        np_image, metadata = reader(input_path, desired_axcodes=desired_ornt, **kwargs)
+        np_image, metadata = reader(input_path, desired_axcodes=desired_ornt, header=header, **kwargs)
 
     if dtype is not None:
         np_image = np_image.astype(dtype)

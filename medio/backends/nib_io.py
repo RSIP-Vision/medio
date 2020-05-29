@@ -11,12 +11,13 @@ class NibIO:
     coord_sys = 'nib'
 
     @staticmethod
-    def read_img(input_path, desired_axcodes=None, unravel=False):
+    def read_img(input_path, desired_axcodes=None, unravel=False, header=False):
         """
         Reads a NIFTI file and returns the image array and metadata
         :param input_path: path-like (str or pathlib.Path) of the image file to read
         :param desired_axcodes: str, tuple of str or None - the desired orientation of the image to be returned
         :param unravel: if True and the array dtype is structured, stacks the channels along the last axis
+        :param header: whether to include a header attribute with additional metadata in the returned metadata
         :return: image array and corresponding metadata
         """
         img_struct = nib.load(input_path)
@@ -28,6 +29,8 @@ class NibIO:
             img = NibIO.unravel_array(img)
         affine = Affine(img_struct.affine)
         metadata = MetaData(affine=affine, orig_ornt=orig_ornt_str, coord_sys=NibIO.coord_sys)
+        if header:
+            metadata.header = {key: img_struct.header[key] for key in img_struct.header.keys()}
         return img, metadata
 
     @staticmethod

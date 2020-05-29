@@ -20,13 +20,14 @@ class ItkIO:
     image_type = itk.Image[pixel_type, dimension]
 
     @staticmethod
-    def read_img(input_path, desired_axcodes=None, pixel_type=pixel_type, fallback_only=True):
+    def read_img(input_path, desired_axcodes=None, pixel_type=pixel_type, fallback_only=True, header=False):
         """
         The main reader function, reads images and performs reorientation and unpacking
         :param input_path: path of image file or directory containing dicom series
         :param desired_axcodes: string or tuple - e.g. 'LPI', ('R', 'A', 'S')
         :param pixel_type: preferred itk pixel type for the image
         :param fallback_only: if True, finds the pixel_type automatically and uses pixel_type only if failed
+        :param header: whether to include a header attribute with additional metadata in the returned metadata
         :return: numpy image and metadata object which includes pixdim, affine, original orientation string and
         coordinates system
         """
@@ -47,10 +48,10 @@ class ItkIO:
             img, _ = ItkIO.reorient(img, desired_axcodes)
             image_np, affine = ItkIO.unpack_img(img)
             metadata = MetaData(affine=affine, orig_ornt=orig_ornt, coord_sys=ItkIO.coord_sys)
-
+        if header:
+            metadict = img.GetMetaDataDictionary()
+            metadata.header = {key: metadict[key] for key in metadict.GetKeys()}
         return image_np, metadata
-        # mdict_itk = img.GetMetaDataDictionary()
-        # mdict = {key: mdict_itk[key] for key in mdict_itk.GetKeys()}
 
     @staticmethod
     def save_img(filename, image_np, metadata, use_original_ornt=True, is_vector=False, allow_dcm_reorient=False,
