@@ -18,12 +18,12 @@ class NibIO:
                            ('A', np.uint8)])
 
     @staticmethod
-    def read_img(input_path, desired_axcodes=None, channels_axis=None, header=False):
+    def read_img(input_path, desired_axcodes=None, header=False, channels_axis=None):
         """
         Reads a NIFTI file and returns the image array and metadata
         :param input_path: path-like (str or pathlib.Path) of the image file to read
         :param desired_axcodes: str, tuple of str or None - the desired orientation of the image to be returned
-        :param channels_axis: if not None and the array dtype is structured, stacks the channels along the components_axis
+        :param channels_axis: if not None and the array dtype is structured, stacks the channels along channels_axis
         :param header: whether to include a header attribute with additional metadata in the returned metadata
         :return: image array and corresponding metadata
         """
