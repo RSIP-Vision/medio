@@ -1,12 +1,12 @@
 from pathlib import Path
 from typing import Union
-from uuid import uuid1
 
 import itk
 import numpy as np
 from itkTemplate import TemplateTypeError
 
 from medio.metadata.affine import Affine
+from medio.metadata.dcm_uid import generate_uid
 from medio.metadata.itk_orientation import itk_orientation_code
 from medio.metadata.metadata import MetaData, check_dcm_ornt
 from medio.utils.files import is_dicom, make_empty_dir
@@ -288,9 +288,9 @@ class ItkIO:
         mdict = itk.MetaDataDictionary()
 
         # Series Instance UID
-        mdict['0020|000e'] = str(uuid1())
+        mdict['0020|000e'] = generate_uid()
         # Study Instance UID
-        mdict['0020|000d'] = str(uuid1())
+        mdict['0020|000d'] = generate_uid()
 
         # Pixel Spacing - TODO: not necessary - automatically saved
         spacing = image.GetSpacing()
@@ -379,7 +379,7 @@ def itk_imread(filename, pixel_type=None, fallback_only=False):
         imageIO.ReadImageInformation()
         dimension = imageIO.GetNumberOfDimensions()
         # Increase dimension if last dimension is not of size one.
-        if increase_dimension and imageIO.GetDimensions(dimension-1) != 1:
+        if increase_dimension and imageIO.GetDimensions(dimension - 1) != 1:
             dimension += 1
         ImageType = itk.Image[pixel_type, dimension]
         reader = TemplateReaderType[ImageType].New(**kwargs)
