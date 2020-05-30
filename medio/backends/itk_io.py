@@ -14,13 +14,15 @@ from medio.utils.files import is_dicom, make_empty_dir
 
 class ItkIO:
     coord_sys = 'itk'
+    DEFAULT_COMPONENTS_AXIS = 0  # in the transposed image
     # default image type:
     dimension = 3
     pixel_type = itk.ctype('short')  # signed short - int16
     image_type = itk.Image[pixel_type, dimension]
 
     @staticmethod
-    def read_img(input_path, desired_axcodes=None, pixel_type=pixel_type, fallback_only=True, header=False):
+    def read_img(input_path, desired_axcodes=None, header=False, components_axis=None, pixel_type=pixel_type,
+                 fallback_only=True):
         """
         The main reader function, reads images and performs reorientation and unpacking
         :param input_path: path of image file or directory containing dicom series
@@ -28,6 +30,7 @@ class ItkIO:
         :param pixel_type: preferred itk pixel type for the image
         :param fallback_only: if True, finds the pixel_type automatically and uses pixel_type only if failed
         :param header: whether to include a header attribute with additional metadata in the returned metadata
+        :param components_axis: if not None and the image is channeled (e.g. RGB) move the channels to channels_axis
         :return: numpy image and metadata object which includes pixdim, affine, original orientation string and
         coordinates system
         """
@@ -51,30 +54,36 @@ class ItkIO:
         if header:
             metadict = img.GetMetaDataDictionary()
             metadata.header = {key: metadict[key] for key in metadict.GetKeys()}
+        n_components = img.GetNumberOfComponentsPerPixel()
+        if (n_components > 1) and (components_axis is not None):
+            # assert image_np.shape[ItkIO.DEFAULT_COMPONENTS_AXIS] == n_components  # TODO: is that always True?
+            image_np = np.moveaxis(image_np, ItkIO.DEFAULT_COMPONENTS_AXIS, components_axis)
         return image_np, metadata
 
     @staticmethod
-    def save_img(filename, image_np, metadata, use_original_ornt=True, is_vector=False, allow_dcm_reorient=False,
-                 compression=False):
+    def save_img(filename, image_np, metadata, use_original_ornt=True, components_axis=None,
+                 allow_dcm_reorient=False, compression=False):
         """
         Save an image file with itk
         :param filename: the filename to save, str or os.PathLike
         :param image_np: the image's numpy array
         :param metadata: the corresponding metadata
         :param use_original_ornt: whether to save in the original orientation or not
-        :param is_vector: is the image a vector type, for example RGB. If it is - the channels are the first dimension
+        :param components_axis: if not None - the image has more than 1 component (e.g. RGB) and the components are in
+        components_axis
         :param allow_dcm_reorient: whether to allow automatic reorientation to a right handed orientation or not
         :param compression: use compression or not
         """
         is_dcm = is_dicom(filename, check_exist=False)
         if is_dcm:
-            image_np = ItkIO.prepare_dcm_array(image_np, is_vector=is_vector)
-        image = ItkIO.prepare_image(image_np, metadata, use_original_ornt, is_vector=is_vector, is_dcm=is_dcm,
-                                    allow_dcm_reorient=allow_dcm_reorient)
+            image_np = ItkIO.prepare_dcm_array(image_np, is_vector=components_axis is not None)
+        image = ItkIO.prepare_image(image_np, metadata, use_original_ornt, components_axis=components_axis,
+                                    is_dcm=is_dcm, allow_dcm_reorient=allow_dcm_reorient)
         ItkIO.save_img_file(image, str(filename), compression=compression)
 
     @staticmethod
-    def prepare_image(image_np, metadata, use_original_ornt, is_vector=False, is_dcm=False, allow_dcm_reorient=False):
+    def prepare_image(image_np, metadata, use_original_ornt, components_axis=None, is_dcm=False,
+                      allow_dcm_reorient=False):
         """Prepare image for saving"""
         orig_coord_sys = metadata.coord_sys
         metadata.convert(ItkIO.coord_sys)
@@ -82,7 +91,7 @@ class ItkIO:
         if is_dcm:
             # checking right-handed orientation before saving a dicom file/series
             desired_ornt = check_dcm_ornt(desired_ornt, metadata, allow_dcm_reorient=allow_dcm_reorient)
-        image = ItkIO.pack2img(image_np, metadata.affine, is_vector)
+        image = ItkIO.pack2img(image_np, metadata.affine, components_axis=components_axis)
         if (desired_ornt is not None) and (desired_ornt != metadata.ornt):
             image, _ = ItkIO.reorient(image, desired_ornt)
         metadata.convert(orig_coord_sys)
@@ -99,7 +108,7 @@ class ItkIO:
             # if the image is 2d it can be signed
             image_np_sq = np.squeeze(image_np)
             if image_np_sq.ndim == 2:
-                image_np = image_np_sq[..., np.newaxis]
+                # image_np = image_np_sq[..., np.newaxis]  # TODO: why?
                 dcm_dtypes = [np.int16] + dcm_dtypes
 
         if image_np.dtype in dcm_dtypes:
@@ -113,7 +122,7 @@ class ItkIO:
         raise NotImplementedError('Saving a single dicom file with ItkIO is currently supported only for \n'
                                   '1. 2d images - int16, uint16, uint8\n'
                                   '2. 3d images with integer nonnegative values - uint8, uint16\n'
-                                  '3. 2d/3d RGB images - uint8 (with is_vector=True)\n'
+                                  '3. 2d/3d RGB[A] images - uint8 (with channels_axis)\n'
                                   'For negative values, try to save a dicom directory or use PdcmIO.save_arr2dcm_file')
 
     @staticmethod
@@ -153,8 +162,12 @@ class ItkIO:
         return img_array
 
     @staticmethod
-    def array_to_itk_img(img_array, is_vector=False):
-        """Set is_vector to True for vector images, e.g. RGB"""
+    def array_to_itk_img(img_array, components_axis=None):
+        """Set components_axis to not None for vector images, e.g. RGB"""
+        is_vector = False
+        if components_axis is not None:
+            img_array = np.moveaxis(img_array, components_axis, ItkIO.DEFAULT_COMPONENTS_AXIS)
+            is_vector = True
         img_itk = itk.image_from_array(img_array.T.copy(), is_vector=is_vector)  # copy is crucial for the ordering
         return img_itk
 
@@ -172,8 +185,8 @@ class ItkIO:
         return Affine(direction=direction, spacing=spacing, origin=origin)
 
     @staticmethod
-    def pack2img(image_np, affine, is_vector=False):
-        image = ItkIO.array_to_itk_img(image_np, is_vector)
+    def pack2img(image_np, affine, components_axis=None):
+        image = ItkIO.array_to_itk_img(image_np, components_axis)
         ItkIO.set_img_aff(image, affine)
         return image
 
@@ -239,7 +252,7 @@ class ItkIO:
         return itk_imread(filenames, pixel_type, fallback_only)
 
     @staticmethod
-    def save_dcm_dir(dirname, image_np, metadata, use_original_ornt=True, is_vector=False, parents=False,
+    def save_dcm_dir(dirname, image_np, metadata, use_original_ornt=True, components_axis=None, parents=False,
                      allow_dcm_reorient=False, **kwargs):
         """
         Save a 3d numpy array image_np as a dicom series of 2d dicom slices in the directory dirname
@@ -247,13 +260,14 @@ class ItkIO:
         :param image_np: the image's numpy array
         :param metadata: the corresponding metadata
         :param use_original_ornt: whether to save in the original orientation or not
-        :param is_vector: is the image a vector type, for example RGB. If it is - the channels are the first dimension
+        :param components_axis: if not None - the image has more than 1 component (e.g. RGB) and the components are in
+        components_axis
         :param parents: if True, creates also the parents of dirname
         :param allow_dcm_reorient: whether to allow automatic reorientation to a right-handed orientation or not
         :param kwargs: optional kwargs passed to ItkIO.dcm_metadata: pattern, metadata_dict
         """
-        image = ItkIO.prepare_image(image_np, metadata, use_original_ornt, is_vector=is_vector, is_dcm=True,
-                                    allow_dcm_reorient=allow_dcm_reorient)
+        image = ItkIO.prepare_image(image_np, metadata, use_original_ornt, components_axis=components_axis,
+                                    is_dcm=True, allow_dcm_reorient=allow_dcm_reorient)
         image_type = type(image)
         _, (pixel_type, _) = itk.template(image)
         image2d_type = itk.Image[pixel_type, 2]
