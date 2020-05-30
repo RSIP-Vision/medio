@@ -11,7 +11,7 @@ def convert_ds(dataset):
     >>> ds = convert_ds(ds)
     >>> print(ds.PixelSpacing)
     """
-    if hasattr(dataset, 'SharedFunctionalGroupsSequence') and len(dataset.SharedFunctionalGroupsSequence) > 0:
+    if dataset.get('NumberOfFrames', 1) > 1:
         dataset.__class__ = MultiFrameFileDataset
     return dataset
 
@@ -50,6 +50,10 @@ class MultiFrameFileDataset(FileDataset):
     def slice_positions(self):
         """Return a list of the slices' position"""
         return [seq.PlanePositionSequence[0].ImagePositionPatient for seq in self.PerFrameFunctionalGroupsSequence]
+
+    def slice_position(self, index):
+        """Return the slice position according to the slice index"""
+        return self.PerFrameFunctionalGroupsSequence[index].PlanePositionSequence[0].ImagePositionPatient
 
     def del_intensity_trans(self):
         """Delete the pixel value transformation sequence from dataset"""

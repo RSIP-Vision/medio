@@ -12,27 +12,29 @@ class PdcmIO:
     coord_sys = 'itk'
 
     @staticmethod
-    def read_img(input_path, globber='*', header=False):
+    def read_img(input_path, globber='*', header=False, allow_default_affine=False):
         """
         Read a dicom file or folder (series) and return the numpy array and the corresponding metadata
         :param input_path: path-like object (str or pathlib.Path) of the file or directory to read
         :param globber: relevant for a directory - globber for selecting the series files (all files by default)
-        :param header: whether to include a header attribute with additional metadata in the returned metadata
+        :param header: whether to include a header attribute with additional metadata in the returned metadata (single
+        file only)
+        :param allow_default_affine: whether to allow default affine when some tags are missing (multiframe file only)
         :return: numpy array and metadata
         """
         input_path = Path(input_path)
         if input_path.is_dir():
             return PdcmIO.read_dcm_dir(input_path, globber)
         else:
-            return PdcmIO.read_dcm_file(input_path, header)
+            return PdcmIO.read_dcm_file(input_path, header, allow_default_affine)
 
     @staticmethod
-    def read_dcm_file(filename, header=False):
+    def read_dcm_file(filename, header=False, allow_default_affine=False):
         """Read a single dicom file"""
         ds = pydicom.dcmread(str(filename))
         ds = convert_ds(ds)
         if ds.__class__ is MultiFrameFileDataset:
-            img, affine = unpack_dataset(ds)
+            img, affine = unpack_dataset(ds, allow_default_affine=allow_default_affine)
         else:
             img, affine = combine_slices([ds])
         metadata = PdcmIO.aff2meta(affine)

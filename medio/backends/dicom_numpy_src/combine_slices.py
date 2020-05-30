@@ -140,7 +140,7 @@ def _validate_slices_form_uniform_grid(slice_datasets):
         #  combination of the slices into voxels
         'PixelSpacing',
         'PixelRepresentation',
-        'BitsAllocated',
+        'BitsAllocated'
     ]
 
     for property_name in invariant_properties:

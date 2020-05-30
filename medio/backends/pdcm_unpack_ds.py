@@ -10,7 +10,7 @@ from medio.backends.dicom_numpy_src.combine_slices import (_validate_image_orien
 logger = logging.getLogger(__name__)
 
 
-def unpack_dataset(dataset, rescale=None):
+def unpack_dataset(dataset, rescale=None, allow_default_affine=False):
     """
     Given a pydicom dataset of a single image file return three-dimensional numpy array.
     Also calculate a 4x4 affine transformation matrix that converts the ijk-pixel-indices
@@ -62,10 +62,16 @@ def unpack_dataset(dataset, rescale=None):
 
     If any of these conditions are not met, a `dicom_numpy.DicomImportException` is raised.
     """
-    _validate_image_orientation(dataset.ImageOrientationPatient)
-    voxels = _unpack_pixel_array(dataset, rescale)
-    transform = _ijk_to_patient_xyz_transform_matrix(dataset)
+    try:
+        _validate_image_orientation(dataset.ImageOrientationPatient)
+        transform = _ijk_to_patient_xyz_transform_matrix(dataset)
+    except AttributeError as e:
+        if allow_default_affine:
+            transform = np.eye(4)
+        else:
+            raise e
 
+    voxels = _unpack_pixel_array(dataset, rescale)
     return voxels, transform
 
 
@@ -76,7 +82,7 @@ def _unpack_pixel_array(dataset, rescale=None):
         rescale = _requires_rescaling(dataset)
 
     if rescale:
-        voxels = voxels.astype('int16')
+        voxels = voxels.astype('int16')  # TODO: it takes time! Consider view.
         slope = getattr(dataset, 'RescaleSlope', 1)
         intercept = getattr(dataset, 'RescaleIntercept', 0)
         if int(slope) == slope and int(intercept) == intercept:
@@ -98,7 +104,7 @@ def _ijk_to_patient_xyz_transform_matrix(dataset):
 
     transform[:3, 0] = row_cosine * column_spacing
     transform[:3, 1] = column_cosine * row_spacing
-    transform[:3, 2] = (np.array(dataset.slice_positions()[-1]) - dataset.slice_positions()[0]  # TODO: change to func.
+    transform[:3, 2] = (np.array(dataset.slice_position(-1)) - dataset.slice_positions(0)
                         ) / (dataset.NumberOfFrames - 1)
     # transform[:3, 2] = slice_cosine * slice_spacing
 
