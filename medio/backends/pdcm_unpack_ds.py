@@ -69,7 +69,7 @@ def unpack_dataset(dataset, rescale=None, allow_default_affine=False):
         if allow_default_affine:
             transform = np.eye(4)
         else:
-            raise e
+            raise AttributeError(str(e) + "\nTry using: allow_default_affine=True")
 
     voxels = _unpack_pixel_array(dataset, rescale)
     return voxels, transform
