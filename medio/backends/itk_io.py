@@ -54,6 +54,7 @@ class ItkIO:
         if header:
             metadict = img.GetMetaDataDictionary()
             metadata.header = {key: metadict[key] for key in metadict.GetKeys()}
+        # TODO: consider unifying with PdcmIO.move_channels_axis
         n_components = img.GetNumberOfComponentsPerPixel()
         if (n_components > 1) and (components_axis is not None):
             # assert image_np.shape[ItkIO.DEFAULT_COMPONENTS_AXIS] == n_components  # TODO: is that always True?

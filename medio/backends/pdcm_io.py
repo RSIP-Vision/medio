@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pydicom
+import numpy as np
 
 from medio.backends.pdcm_unpack_ds import unpack_dataset
 from medio.backends.dicom_numpy_src import combine_slices
@@ -10,26 +11,30 @@ from medio.metadata.pdcm_ds import convert_ds, MultiFrameFileDataset
 
 class PdcmIO:
     coord_sys = 'itk'
+    DEFAULT_CHANNELS_AXIS = 0  # in the transposed image
 
     @staticmethod
-    def read_img(input_path, globber='*', header=False, allow_default_affine=False):
+    def read_img(input_path, header=False, channels_axis=None, globber='*', allow_default_affine=False):
         """
         Read a dicom file or folder (series) and return the numpy array and the corresponding metadata
         :param input_path: path-like object (str or pathlib.Path) of the file or directory to read
         :param globber: relevant for a directory - globber for selecting the series files (all files by default)
         :param header: whether to include a header attribute with additional metadata in the returned metadata (single
         file only)
+        :param channels_axis: if not None and the image is channeled (e.g. RGB) move the channels to channels_axis in
+        the returned image array
         :param allow_default_affine: whether to allow default affine when some tags are missing (multiframe file only)
         :return: numpy array and metadata
         """
         input_path = Path(input_path)
         if input_path.is_dir():
-            return PdcmIO.read_dcm_dir(input_path, globber)
+            return PdcmIO.read_dcm_dir(input_path, globber, channels_axis=channels_axis)
         else:
-            return PdcmIO.read_dcm_file(input_path, header, allow_default_affine)
+            return PdcmIO.read_dcm_file(input_path, header, allow_default_affine=allow_default_affine,
+                                        channels_axis=channels_axis)
 
     @staticmethod
-    def read_dcm_file(filename, header=False, allow_default_affine=False):
+    def read_dcm_file(filename, header=False, allow_default_affine=False, channels_axis=None):
         """Read a single dicom file"""
         ds = pydicom.dcmread(filename)
         ds = convert_ds(ds)
@@ -40,10 +45,11 @@ class PdcmIO:
         metadata = PdcmIO.aff2meta(affine)
         if header:
             metadata.header = {str(key): ds[key] for key in ds.keys()}
+        img = PdcmIO.move_channels_axis(img, samples_per_pixel=ds.SamplesPerPixel, channels_axis=channels_axis)
         return img, metadata
 
     @staticmethod
-    def read_dcm_dir(input_dir, globber='*'):
+    def read_dcm_dir(input_dir, globber='*', channels_axis=None):
         """Reads a 3D dicom image: input path can be a file or directory (DICOM series)"""
         # find all dicom files within the specified folder, read every file separately and sort them by InstanceNumber
         files = list(Path(input_dir).glob(globber))
@@ -53,11 +59,20 @@ class PdcmIO:
         slices.sort(key=lambda ds: ds.get('InstanceNumber', 0))
         img, affine = combine_slices(slices)
         metadata = PdcmIO.aff2meta(affine)
+        img = PdcmIO.move_channels_axis(img, samples_per_pixel=slices[0].SamplesPerPixel, channels_axis=channels_axis)
         return img, metadata
 
     @staticmethod
     def aff2meta(affine):
         return MetaData(affine, coord_sys=PdcmIO.coord_sys)
+
+    @staticmethod
+    def move_channels_axis(array, samples_per_pixel, source=DEFAULT_CHANNELS_AXIS, channels_axis=None):
+        # TODO: the following assert is not always True, depends on Planar Configuration (0028,0006)
+        # assert array.shape[source] == samples_per_pixel
+        if (samples_per_pixel > 1) and (channels_axis is not None):
+            return np.moveaxis(array, source, channels_axis)
+        return array
 
     @staticmethod
     def save_arr2dcm_file(output_filename, template_filename, img_arr, dtype=None, keep_rescale=False):
