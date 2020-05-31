@@ -42,84 +42,110 @@ save_img('ct.nii.gz', array, metadata, backend='nib')
 # Documentation
 ## Reading and Saving Images
 
-The 3 main functions for reading and saving are:
-
 ### read_img
-`medio.read_img(input_path, desired_ornt=None, backend=None, dtype=None, **kwargs)`
-- `input_path` is a path-like object (str or pathlib.Path) for the data to be read. It can be a file or a folder (in 
+`medio.read_img(input_path, desired_ornt=None, backend=None, dtype=None, header=False, channels_axis=-1, **kwargs)`
+- `input_path`: *path-like*<br>
+  Path for the data to be read (str or pathlib.Path object for example). It can be a file or a folder (in 
 the case of a dicom series). It is the only required parameter.
   If the input path is s folder, it should contain a single dicom series.
-- Returns: (array, metadata) of types numpy.ndarray and medio.MetaData. The first is a numpy array of the 
+- Returns: *array, metadata*<br>
+  array of type *numpy.ndarray* and metadata of type *medio.MetaData*. The first is a numpy array of the 
 image, and the second is a metadata object of the image (see [MetaData](#metadata) class documentation).
 
 Optional parameters:
-- `desired_ornt=None`: str of the desired orientation of the image, e.g. 'RAI'. If None, no reorientation is performed.
+- `desired_ornt`: *orientation string or None*<br>
+  The desired orientation of the returned image array, e.g. 'RAI'. If None, no reorientation is performed.
   The desired orientation is in itk standard, even when the IO engine ("backend") is nibabel which uses a different 
-  standard (see [Orientation](#orientation)). If you use pydicom backend, it should be None.
-- `backend=None`: str for the backend IO engine to be used: 'nib' (nibabel), 'itk' or 'pydicom' (also 'pdcm'). If None, 
-the backend is chosen automatically: 'nib' for nifti files ('.nii' or '.nii.gz' suffix), otherwise 'itk'.
-- `dtype=None`: if not None, equivalent to `array.astype(dtype)` on the returned image array.
+  standard (see [Orientation](#orientation)).<br>
+  If you use pydicom backend, it should be None.<br>
+  If `desired_ornt` is the same as the original image orientation, no reorientation is performed.
+- `backend`: *{'nib', 'itk', 'pydicom', 'pdcm', None}*<br>
+  The backend IO engine to use: 'nib' (nibabel), 'itk' or 'pydicom' (also 'pdcm'). If None, 
+the backend is chosen automatically: 'nib' for nifti files (e.g. '.nii' or '.nii.gz' suffix), otherwise 'itk'.
+- `dtype`: *numpy data-type or None*<br>
+  If not None, equivalent to `array.astype(dtype)` on the returned image array.
+- `header`: *boolean*<br>
+  If True, the returned metadata includes also a `metadata.header` attribute which stores the raw metadata of the file 
+  as a dictionary.<br>
+  This is not implemented for series of files (folder `input_path`), and not used during saving.
+- `channels_axis`: *int or None*<br>
+  If not None and the image has more than a single channels / component (e.g. RGB or RGBA), the channels axis 
+  are is `channels_axis`. If None, the backend's original convention is used.
 
 `**kwargs` are additional per-backend optional parameters:
 - 'itk' backend:
-  - `pixel_type=itk.SS`: itk pixel type of the image file/folder. The default value is int16 (`itk.SS` - Signed Short). 
-Other common pixel types are: `itk.UC` - uint8, `itk.US` - uint16. 
-  - `fallback_only=False`: relevant to files only. If True, the pixel type is automatically found. If failed then 
-`pixel_type` is used. A similar effect can be achieved with `pixel_type=None`. 
-  - `dimension=3`: relevant to folders only. The dimension of the image to be read.
-
-- 'nib' backend:
-  - `unravel=False`: relevant for structured data types, for example RGB image. If True and the image is of such dtype, 
-then the channels are stacked along the last axis of the image array.
+  - `pixel_type=itk.SS`: *itk pixel-type or None*<br>
+    Itk pixel type of the image file/folder. The default value is int16 (`itk.SS` - Signed Short). 
+    Other common pixel types are: `itk.UC` - uint8, `itk.US` - uint16.<br>
+    You can use the function `itk.ctype` in order to convert C-types to itk types. For example:<br>
+    `itk.ctype('unsigned short') == itk.US`
+  - `fallback_only=True`: *boolean*<br>
+    If True, the pixel type is automatically found and if failed then `pixel_type` is used 
+    (`pixel_type` must be not None in this case).<br>
+    Note: if `itk.imread(input_path)` fails, using `fallback_only=True` will result in a slightly 
+    inferior performance. If you know what is pixel-type of the image, you can set it with `pixel_type`
+    and use `fallback_only=False`.
 
 - 'pydicom' backend
-  - `globber='*'`: relevant for a directory - glob pattern for selecting the series files (all files by default)
+  - `globber='*'`: *str*<br>
+    Relevant for a directory - glob pattern for selecting the series files (all files by default).
+  - `allow_default_affine=False`: *boolean*<br>
+    Relevant for multiframe dicom file - if True and the dicom miss some physical tags for the affine
+    calculation, use a default affine value.
 
 ### save_img
-`medio.save_img(filename, np_image, metadata, use_original_ornt=True, backend=None, dtype=None, mkdir=False,
-parents=False, **kwargs)`
-- `filename`: a path-like object of the file to be saved.
-- `np_image`: the image array.
-- `metadata`: the corresponding metadata.
+`medio.save_img(filename, np_image, metadata, use_original_ornt=True, backend=None, dtype=None, channels_axis=None,
+mkdir=False, parents=False, **kwargs)`
+- `filename`: *path-like*<br>
+  The file to be saved.
+- `np_image`: *numpy.ndarray*<br>
+  The image array.
+- `metadata`: *medio.MetaData*<br>
+  The corresponding metadata.
 
 Optional parameters:
-- `use_original_ornt=True`: whether to save in the original orientation stored in metadata.orig_ornt or not.
-- `backend=None`: str of the backend to use: 'nib' or 'itk'. If None, 'nib' is chosen for nifti files and 'itk' 
-otherwise.
-- `dtype=None`: if not None, equivalent to passing `np_image.astype(dtype)`. Note that not every dtype is supported 
+- `use_original_ornt=True`: *boolean*<br> 
+  Whether to save in the original orientation stored in `metadata.orig_ornt` or not.
+- `backend`: *{'nib', 'itk', None}*<br>
+  The backend to use: 'nib' or 'itk'. If None, 'nib' is chosen for nifti files and 'itk' otherwise.
+- `dtype`: *numpy data-type or None*<br>
+  If not None, equivalent to passing `np_image.astype(dtype)`. Note that not every dtype is supported 
 in saving, so make sure what is the dtype of the image array you want to save.
-- `mkdir=False`: if True, creates the directory of `filename`.
-- `parents=False`: to be used with `mkdir=True`. If True, creates also the parent directories. 
+- `channels_axis`: *int or None*<br>
+  If not None, the image has channels (e.g. RGB) along the axis `channels_axis` of `np_image`.
+- `mkdir`: *boolean*<br>
+  If True, creates the directory of `filename`.
+- `parents`: *boolean*<br>
+  To be used with `mkdir=True`. If True, creates also the parent directories. 
 
 'itk' backend optional parameters (`**kwargs`):
-- `is_vector=False`: set to True if the image is channeled (e.g. RGB). In such case, the channels should be in the 
-first dimension of `np_image`. 
-- `allow_dcm_reorient=False`: when saving a dicom file ('.dcm' or '.dicom' suffix) the image orientation should be 
-right-handed. If it is left-handed, the image can be reoriented to a right-handed orientation with setting this 
+- `allow_dcm_reorient=False`: *boolean*<br>
+ When saving a dicom file ('.dcm' or '.dicom' suffix) the image orientation should be right-handed.
+ If it is left-handed, the image can be reoriented to a right-handed orientation with setting this 
 parameter to True, which flips the last axis direction.
-- `compression=False`: whether to use compression in itk writer. Using a '.nii.gz' suffix in `filename` also compresses 
+- `compression=False`: *boolean*<br>
+  Whether to use compression in itk writer. Using a '.nii.gz' suffix in `filename` also compresses 
 the image.
 
 ### save_dir
 Save a 3d image as dicom series of 2d slices in a directory (itk backend).
 
-`medio.save_dir(dirname, np_image, metadata, use_original_ornt=True, dtype=None, parents=False,
-allow_dcm_reorient=False, **kwargs)`
+`medio.save_dir(dirname, np_image, metadata, use_original_ornt=True, dtype=None, channels_axis=None,
+parents=False, allow_dcm_reorient=False, **kwargs)`
 
-Save a 3d numpy array image_np as a dicom series of 2d dicom slices in the directory dirname
-- `dirname`: the directory to save the files in, str or pathlib.Path. If it exists - must be empty.
-- `np_image`: the image array.
-- `metadata`: the corresponding metadata.
+Save a 3d numpy array image_np as a dicom series of 2d dicom slices in the directory `dirname`.
 
-Optional parameters, see also in [save_img](#save_img):
-- `use_original_ornt=True`: whether to save in the original orientation or not.
-- `dtype=None`: if not None, equivalent to passing `np_image.astype(dtype)`.
-- `parents=False`: if True, creates also the parents of `dirname`.
-- `allow_dcm_reorient=False`: whether to allow automatic reorientation to a right-handed orientation or not.
+- `dirname`: *path-like*<br>
+  The directory to save the files in (str or pathlib.Path). If it exists - must be empty.
+
+The other parameters: `np_image`, `metadata`, `use_original_ornt`, `dtype`, `channels_axis`, `parents`
+and `allow_dcm_reorient` are equivalent to those used in [save_img](#save_img).
 
 Additional optional parameters (`**kwargs`): 
-- `pattern='IM{}.dcm'`: str pattern for the filenames to save, including a placeholder ('`{}`') for the slice number.
-- `metadata_dict=None`: dictionary of metadata for adding tags or overriding the default values. For example, 
+- `pattern='IM{}.dcm'`: *str*<br>
+  Pattern for the filenames to save, including a placeholder ('`{}`') for the slice number.
+- `metadata_dict`: *dictionary or None*<br>
+  Dictionary of metadata for adding tags or overriding the default values. For example, 
 `metadata_dict={'0008|0060': 'US'}` will override the default 'CT' modality and set it to 'US' (ultrasound).
 
 ## Metadata Objects
