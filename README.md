@@ -13,7 +13,7 @@ environments):
 ```
 (<env-name>) >pip install --upgrade pip
 ```
-Then, download the [.whl file](https://drive.google.com/open?id=1douf_wbY5h9eB8UHvWUXLfadrMq7Rc_k)
+Then, download the [.whl file](/uploads/eefdcc80d1e44d6d0d0acaabc4a02ee9/medio-0.2.0-py3-none-any.whl)
 and install it with:
 ```
 (<env-name>) >pip install medio-0.2.0-py3-none-any.whl
