@@ -16,7 +16,7 @@ environments):
 Then, download the [.whl file](/uploads/338e95916f6c22548d998dda4f1bf5bc/medio-0.1.2-py3-none-any.whl)
 and install it with:
 ```
-(<env-name>) >pip install medio-0.1.2-py3-none-any.whl
+(<env-name>) >pip install medio-0.2.0-py3-none-any.whl
 ```
 This will install the medio python package and its dependencies in your environment.
 
@@ -26,7 +26,6 @@ The dependencies are:
 - itk (itk-io, itk-filtering)
 - nibabel
 - pydicom
-- dicom-numpy
 
 A conda environment .yml file is in the project's root.
 
