@@ -31,7 +31,7 @@ class PdcmIO:
     @staticmethod
     def read_dcm_file(filename, header=False, allow_default_affine=False):
         """Read a single dicom file"""
-        ds = pydicom.dcmread(str(filename))
+        ds = pydicom.dcmread(filename)
         ds = convert_ds(ds)
         if ds.__class__ is MultiFrameFileDataset:
             img, affine = unpack_dataset(ds, allow_default_affine=allow_default_affine)
@@ -49,7 +49,7 @@ class PdcmIO:
         files = list(Path(input_dir).glob(globber))
         if len(files) == 0:
             raise FileNotFoundError(f'Received an empty directory: "{input_dir}"')
-        slices = [pydicom.dcmread(str(filename)) for filename in files]
+        slices = [pydicom.dcmread(filename) for filename in files]
         slices.sort(key=lambda ds: ds.get('InstanceNumber', 0))
         img, affine = combine_slices(slices)
         metadata = PdcmIO.aff2meta(affine)

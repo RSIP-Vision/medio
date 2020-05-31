@@ -9,4 +9,4 @@ dependencies:
   - numpy >= 1.18.1
   - itk == 5.0.1
   - nibabel >= 3.0.2
-  - pydicom >= 1.4.2
+  - pydicom >= 2.0.0
