@@ -104,7 +104,7 @@ def _ijk_to_patient_xyz_transform_matrix(dataset):
 
     transform[:3, 0] = row_cosine * column_spacing
     transform[:3, 1] = column_cosine * row_spacing
-    transform[:3, 2] = (np.array(dataset.slice_position(-1)) - dataset.slice_positions(0)
+    transform[:3, 2] = (np.array(dataset.slice_position(-1)) - dataset.slice_position(0)
                         ) / (dataset.NumberOfFrames - 1)
     # transform[:3, 2] = slice_cosine * slice_spacing
 

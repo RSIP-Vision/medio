@@ -90,9 +90,19 @@ class NibIO:
             raise ValueError(f'RGB or RGBA images must have dtype "np.uint8", got: "{dtype}"')
         n_channels = img.shape[channels_axis]
         img = np.moveaxis(img, channels_axis, -1)
+        r_channel = img[..., 0]
         if n_channels == 3:
-            return img.view(NibIO.RGB_DTYPE)
+            img_rgb = np.empty_like(r_channel, dtype=NibIO.RGB_DTYPE)
+            img_rgb['R'] = r_channel
+            img_rgb['G'] = img[..., 1]
+            img_rgb['B'] = img[..., 2]
+            return img_rgb
         elif n_channels == 4:
-            return img.view(NibIO.RGBA_DTYPE)
+            img_rgba = np.empty_like(r_channel, dtype=NibIO.RGBA_DTYPE)
+            img_rgba['R'] = r_channel
+            img_rgba['G'] = img[..., 1]
+            img_rgba['B'] = img[..., 2]
+            img_rgba['A'] = img[..., 3]
+            return img_rgba
         else:
             raise ValueError(f'Invalid number of channels: {n_channels}, should be 3 (RGB) or 4 (RGBA)')
