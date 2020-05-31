@@ -13,7 +13,7 @@ environments):
 ```
 (<env-name>) >pip install --upgrade pip
 ```
-Then, download the [.whl file](/uploads/338e95916f6c22548d998dda4f1bf5bc/medio-0.1.2-py3-none-any.whl)
+Then, download the [.whl file](https://drive.google.com/open?id=1douf_wbY5h9eB8UHvWUXLfadrMq7Rc_k)
 and install it with:
 ```
 (<env-name>) >pip install medio-0.2.0-py3-none-any.whl
@@ -104,7 +104,7 @@ mkdir=False, parents=False, **kwargs)`
   The corresponding metadata.
 
 Optional parameters:
-- `use_original_ornt=True`: *boolean*<br> 
+- `use_original_ornt`: *boolean*<br> 
   Whether to save in the original orientation stored in `metadata.orig_ornt` or not.
 - `backend`: *{'nib', 'itk', None}*<br>
   The backend to use: 'nib' or 'itk'. If None, 'nib' is chosen for nifti files and 'itk' otherwise.
