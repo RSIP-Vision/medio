@@ -26,6 +26,7 @@ The dependencies are:
 - itk (itk-io, itk-filtering)
 - nibabel
 - pydicom
+- dicom-numpy
 
 A conda environment .yml file is in the project's root.
 

@@ -21,6 +21,7 @@ setup(name='medio',
             'itk-filtering == 5.0.1',
             'nibabel >= 3.0.2',
             'pydicom >= 2.0.0',
+            'dicom-numpy >= 0.4.0',
             'numpy >= 1.18.1'
       ],
       python_requires='>=3.6',

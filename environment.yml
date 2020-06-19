@@ -10,3 +10,5 @@ dependencies:
   - itk == 5.0.1
   - nibabel >= 3.0.2
   - pydicom >= 2.0.0
+  - pip:
+      - dicom-numpy >= 0.4.0
