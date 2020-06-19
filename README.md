@@ -2,7 +2,8 @@
 
 **Medical images I/O python package**
 
-This package unifies the io engines of itk, nibabel, and pydicom packages in a simple and comprehensive interface.
+This package unifies the io engines of itk, nibabel, and pydicom (and dicom-numpy) packages in a simple and 
+comprehensive interface.
 
 It includes conversion between the metadata conventions, reorientations, affine matrix computation for itk and pydicom
 and saving dicom series or file.

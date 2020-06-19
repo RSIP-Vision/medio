@@ -4,8 +4,7 @@ This module is equivalent to dicom_numpy's module: combine_slices.py, but here f
 import logging
 
 import numpy as np
-from medio.backends.dicom_numpy_src.combine_slices import (_validate_image_orientation, _extract_cosines,
-                                                           _requires_rescaling)
+from dicom_numpy.combine_slices import _validate_image_orientation, _extract_cosines, _requires_rescaling
 
 logger = logging.getLogger(__name__)
 
