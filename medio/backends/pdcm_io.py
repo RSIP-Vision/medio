@@ -94,8 +94,8 @@ class PdcmIO:
                 del ds.RescaleSlope
                 del ds.RescaleIntercept
         if dtype is None:
-            img_arr = img_arr.astype(ds.pixel_array.dtype)
+            img_arr = img_arr.astype(ds.pixel_array.dtype, copy=False)
         else:
-            img_arr = img_arr.astype(dtype)
+            img_arr = img_arr.astype(dtype, copy=False)
         ds.PixelData = img_arr.tobytes()
         ds.save_as(output_filename)

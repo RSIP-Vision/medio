@@ -81,7 +81,7 @@ def _unpack_pixel_array(dataset, rescale=None):
         rescale = _requires_rescaling(dataset)
 
     if rescale:
-        voxels = voxels.astype('int16')  # TODO: it takes time! Consider view.
+        voxels = voxels.astype('int16', copy=False)  # TODO: it takes time! Consider view.
         slope = getattr(dataset, 'RescaleSlope', 1)
         intercept = getattr(dataset, 'RescaleIntercept', 0)
         if int(slope) == slope and int(intercept) == intercept:

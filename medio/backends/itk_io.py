@@ -116,7 +116,7 @@ class ItkIO:
             return image_np
 
         for dtype in dcm_dtypes:
-            arr = image_np.astype(dtype)
+            arr = image_np.astype(dtype, copy=False)
             if np.array_equal(arr, image_np):
                 return arr
 

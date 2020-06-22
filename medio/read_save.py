@@ -51,7 +51,7 @@ def read_img(input_path, desired_ornt=None, backend=None, dtype=None, header=Fal
         np_image, metadata = reader(input_path, desired_ornt, header, channels_axis, **kwargs)
 
     if dtype is not None:
-        np_image = np_image.astype(dtype)
+        np_image = np_image.astype(dtype, copy=False)
     return np_image, metadata
 
 
@@ -86,7 +86,7 @@ def save_img(filename, np_image, metadata, use_original_ornt=True, backend=None,
     if mkdir:
         Path(filename).parent.mkdir(parents=parents, exist_ok=True)
     if dtype is not None:
-        np_image = np_image.astype(dtype)
+        np_image = np_image.astype(dtype, copy=False)
     writer(filename, np_image, metadata, use_original_ornt, channels_axis, **kwargs)
 
 
@@ -95,6 +95,6 @@ def save_dir(dirname, np_image, metadata, use_original_ornt=True, dtype=None, ch
     """Save image as a dicom directory. See medio.backends.itk_io.ItkIO.save_dcm_dir documentation.
     dtype is equivalent to passing image_np.astype(dtype) if dtype is not None"""
     if dtype is not None:
-        np_image = np_image.astype(dtype)
+        np_image = np_image.astype(dtype, copy=False)
     ItkIO.save_dcm_dir(dirname, np_image, metadata, use_original_ornt, channels_axis, parents, allow_dcm_reorient,
                        **kwargs)
