@@ -13,7 +13,7 @@ setup(name='medio',
       long_description_content_type='text/markdown',
       url='https://github.com/RSIP-Vision/medio',
       author='RSIP Vision',
-      author_email='contact@rsipvision.com',
+      author_email='jonathan+medio@rsipvision.com',
       keywords=['medical images', 'IO', 'itk', 'nibabel', 'pydicom'],
       packages=find_packages(exclude=['*.tests']),
       install_requires=[
