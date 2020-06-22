@@ -12,12 +12,11 @@ and saving dicom series or file.
 First, make sure you have the latest pip version (better to close PyCharm or any other program which uses the 
 environments):
 ```
-(<env-name>) >pip install --upgrade pip
+(<env-name>) >pip install -U pip
 ```
-Then, download the [.whl file](/uploads/eefdcc80d1e44d6d0d0acaabc4a02ee9/medio-0.2.0-py3-none-any.whl)
-and install it with:
+Install *medio* with:
 ```
-(<env-name>) >pip install medio-0.2.0-py3-none-any.whl
+(<env-name>) >pip install -U medio
 ```
 This will install the medio python package and its dependencies in your environment.
 
