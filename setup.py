@@ -14,7 +14,7 @@ setup(name='medio',
       url='https://github.com/RSIP-Vision/medio',
       author='RSIP Vision',
       author_email='jonathan+medio@rsipvision.com',
-      keywords=['medical images', 'IO', 'itk', 'nibabel', 'pydicom'],
+      keywords=['medical-images', 'IO', 'itk', 'nibabel', 'pydicom', 'python'],
       packages=find_packages(exclude=['*.tests']),
       install_requires=[
             'itk-io == 5.0.1',
