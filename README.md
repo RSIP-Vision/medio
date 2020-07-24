@@ -1,3 +1,4 @@
+[![PyPI version](https://badge.fury.io/py/medio.svg)](https://badge.fury.io/py/medio)
 # medio
 
 **Medical images I/O python package**
