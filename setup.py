@@ -43,4 +43,5 @@ setup(name='medio',
 
             'Operating System :: OS Independent'
       ],
+      license='Apache License 2.0',
       zip_safe=True)
