@@ -154,7 +154,8 @@ Additional optional parameters (`**kwargs`):
 
 The affine of an image is a transformation between the index space of the array to the physical 3d space. 
 The Affine class is a subclass of numpy.ndarray with some special properties (attributes): `spacing`, `origin` and 
-`direction` which can be accessed and set. The method `index2coord` maps the indices to the physical space.
+`direction` which can be accessed and set. The method `index2coord` maps the indices to the physical space,
+`clone` clones the affine.
 
 This class includes also some static methods for affine construction from its components (spacing, origin and direction)
 and also the inverse methods for getting the spacing, origin and direction matrix from a general affine matrix.
@@ -206,6 +207,7 @@ Original orientation: LAS
 The MetaData method `metadata.is_right_handed_ornt()` checks for a right handed orientation according to the determinant 
 of the direction matrix (`metadata.affine.direction`). This method can be useful before saving a dicom file or series, 
 which should have a right-handed orientation.
+The method `clone` clones the metadata object, `convert` converts the metadata inplace to the given coordinate system.
 
 #### Orientation
 The orientation of a 3d image is string of length 3 which is derived from its affine and coordinate system (the 

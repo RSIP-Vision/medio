@@ -1,4 +1,5 @@
 import pprint
+from copy import deepcopy
 
 import numpy as np
 from nibabel import aff2axcodes
@@ -51,6 +52,10 @@ class MetaData:
         if dest_coord_sys != self.coord_sys:
             self.affine, self._ornt, self.orig_ornt = convert_nib_itk(self.affine, self._ornt, self.orig_ornt)
             self.coord_sys = dest_coord_sys
+
+    def clone(self):
+        return MetaData(affine=self.affine.clone(), orig_ornt=self.orig_ornt, coord_sys=self.coord_sys,
+                        header=deepcopy(self.header))
 
     def get_ornt(self):
         """Returns current orientation based on the affine and coordinate system"""

@@ -54,6 +54,9 @@ class Affine(np.ndarray):
     def __getitem__(self, item):
         return super().__getitem__(item).view(np.ndarray)
 
+    def clone(self):
+        return Affine(self.copy())
+
     # Affine properties in addition to the numpy array
     @property
     def origin(self):
