@@ -49,7 +49,7 @@ save_img('ct.nii.gz', array, metadata, backend='nib')
 - `input_path`: *path-like*<br>
   Path for the data to be read (str or pathlib.Path object for example). It can be a file or a folder (in 
 the case of a dicom series). It is the only required parameter.
-  If the input path is s folder, it should contain a single dicom series.
+  If the input path is a folder, it should contain a single dicom series.
 - Returns: *array, metadata*<br>
   array of type *numpy.ndarray* and metadata of type *medio.MetaData*. The first is a numpy array of the 
 image, and the second is a metadata object of the image (see [MetaData](#metadata) class documentation).
