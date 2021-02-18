@@ -4,54 +4,62 @@ from medio.backends.itk_io import ItkIO
 from medio.backends.nib_io import NibIO
 from medio.backends.pdcm_io import PdcmIO
 from medio.metadata.convert_nib_itk import inv_axcodes
+from medio.metadata.metadata import MetaData
 from medio.utils.files import is_nifti
 
 
-def read_img(input_path, desired_ornt=None, backend=None, dtype=None, header=False, channels_axis=-1, **kwargs):
+def read_img(input_path, desired_ornt=None, backend=None, dtype=None, header=False, channels_axis=-1,
+             coord_sys='itk', **kwargs):
     """
     Read medical image with nibabel or itk
     :param input_path: str or os.PathLike, the input path of image file or a directory containing dicom series
     :param desired_ornt: optional parameter for reorienting the image to desired orientation, e.g. 'RAS'
-    The desired_ornt string is in itk standard (if NibIO is used, the orientation is converted accordingly)
+    The desired_ornt string is in the convention of `coord_sys` argument (itk by default). If NibIO is used, the
+    orientation is converted accordingly
     :param backend: optional parameter for setting the reader backend: 'itk', 'nib', 'pdcm' (also 'pydicom') or None
     :param dtype: equivalent to np_image.astype(dtype) if dtype is not None
     :param header: if True, the returned metadata will include a header attribute with additional metadata dictionary as
     read by the backend. Note: currently, this is supported for files only
     :param channels_axis: if not None and the image is channeled (e.g. RGB) move the channels to channels_axis in the
     returned image array
+    :param coord_sys: the coordinate system (or convention) of the `desired_ornt` parameter and the returned metadata.
+    It can be 'itk', 'nib' or None, and is 'itk' by default.
+    None means that the backend will determine coord_sys, but it can lead to a backend-dependent array and metadata
     :return: numpy image and metadata object
     """
-    nib_reader = NibIO.read_img
-    itk_reader = ItkIO.read_img
-    pdcm_reader = PdcmIO.read_img
+    nib_reader_data = (NibIO.read_img, 'nib')
+    itk_reader_data = (ItkIO.read_img, 'itk')
+    pdcm_reader_data = (PdcmIO.read_img, 'itk')
     if backend is None:
         if is_nifti(input_path):
-            reader = nib_reader
+            reader, reader_sys = nib_reader_data
         else:
-            reader = itk_reader
+            reader, reader_sys = itk_reader_data
     else:
         if backend == 'nib':
-            reader = nib_reader
+            reader, reader_sys = nib_reader_data
         elif backend == 'itk':
-            reader = itk_reader
+            reader, reader_sys = itk_reader_data
         elif backend in ('pdcm', 'pydicom'):
             if desired_ornt is not None:
                 raise NotImplementedError('Pydicom reader backend does not yet support reorientation. The passed '
                                           'desired orientation must be None (default).')
-            reader = pdcm_reader
+            reader, reader_sys = pdcm_reader_data
         else:
             raise ValueError('The backend argument must be one of: "itk", "nib", "pdcm" (or "pydicom"), None')
 
-    if reader == nib_reader:
+    if (coord_sys is not None) and (coord_sys != reader_sys):
         desired_ornt = inv_axcodes(desired_ornt)
 
-    if reader is pdcm_reader:
+    if reader is pdcm_reader_data[0]:
         np_image, metadata = reader(input_path, header, channels_axis, **kwargs)
     else:
         np_image, metadata = reader(input_path, desired_ornt, header, channels_axis, **kwargs)
 
     if dtype is not None:
         np_image = np_image.astype(dtype, copy=False)
+    if coord_sys is not None:
+        metadata.convert(coord_sys)
     return np_image, metadata
 
 
