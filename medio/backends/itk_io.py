@@ -3,7 +3,6 @@ from typing import Union
 
 import itk
 import numpy as np
-from itkTemplate import TemplateTypeError
 
 from medio.metadata.affine import Affine
 from medio.metadata.dcm_uid import generate_uid
@@ -35,10 +34,8 @@ class ItkIO:
         coordinates system
         """
         input_path = Path(input_path)
-        if input_path.is_dir():
-            img = ItkIO.read_dir(str(input_path), pixel_type, fallback_only)
-        elif input_path.is_file():
-            img = ItkIO.read_img_file(str(input_path), pixel_type, fallback_only)
+        if input_path.exists():
+            img = itk.imread(str(input_path), pixel_type, fallback_only)
         else:
             raise FileNotFoundError(f'No such file or directory: "{input_path}"')
 
@@ -127,13 +124,8 @@ class ItkIO:
                                   'For negative values, try to save a dicom directory or use PdcmIO.save_arr2dcm_file')
 
     @staticmethod
-    def read_img_file(filename, pixel_type=None, fallback_only=False):
-        """Common pixel types: itk.SS (int16), itk.US (uint16), itk.UC (uint8)"""
-        return itk_imread(filename, pixel_type, fallback_only)
-
-    @staticmethod
     def read_img_file_long(filename, image_type=image_type):
-        """Longer version of read_img_file which returns the itk image and io engine string"""
+        """Longer version of itk.imread that returns the itk image and io engine string"""
         reader = itk.ImageFileReader[image_type].New()
         reader.SetFileName(filename)
         reader.Update()
@@ -226,31 +218,6 @@ class ItkIO:
         reoriented_itk_img = orient.GetOutput()
         original_orientation_code = orient.GetGivenCoordinateOrientation()
         return reoriented_itk_img, original_orientation_code
-
-    @staticmethod
-    def read_dir(dirname, pixel_type=None, fallback_only=False):
-        """
-        Read a dicom directory. If there is more than one series in the directory an error is raised
-        Shorter option for a single series (provided the slices order is known):
-        >>> itk.imread([filename0, filename1, ...])
-        """
-        names_generator = itk.GDCMSeriesFileNames.New()
-        names_generator.SetUseSeriesDetails(True)
-        names_generator.AddSeriesRestriction('0008|0021')  # Series Date
-        names_generator.SetGlobalWarningDisplay(False)
-        names_generator.SetDirectory(dirname)
-
-        series_uid = names_generator.GetSeriesUIDs()
-
-        if len(series_uid) == 0:
-            raise FileNotFoundError(f'No DICOMs in: "{dirname}"')
-        if len(series_uid) > 1:
-            raise OSError(f'The directory: "{dirname}"\n'
-                          f'contains more than one DICOM series')
-
-        series_identifier = series_uid[0]
-        filenames = names_generator.GetFileNames(series_identifier)
-        return itk_imread(filenames, pixel_type, fallback_only)
 
     @staticmethod
     def save_dcm_dir(dirname, image_np, metadata, use_original_ornt=True, components_axis=None, parents=False,
@@ -346,62 +313,3 @@ class ItkIO:
             filenames += [str(Path(dirname) / pattern.format(i + 1))]
 
         return mdict_list, filenames
-
-
-# TODO: remove imread below when itk.imread is updated in itk release
-def itk_imread(filename, pixel_type=None, fallback_only=False):
-    """Read an image from a file or series of files and return an itk.Image.
-    The reader is instantiated with the image type of the image file if
-    `pixel_type` is not provided (default). The dimension of the image is
-    automatically found. If the given filename is a list or a tuple, the
-    reader will use an itk.ImageSeriesReader object to read the files.
-    If `fallback_only` is set to `True`, `imread()` will first try to
-    automatically deduce the image pixel_type, and only use the given
-    `pixel_type` if automatic deduction fails. Failures typically
-    happen if the pixel type is not supported (e.g. it is not currently
-    wrapped).
-
-    This function is adapted from:
-    ITK/Wrapping/Generators/Python/itkExtras.py
-    The change from there is to accept also TemplateTypeError, making the flag fallback_only=True a legitimate default
-    together with some default pixel type, e.g. pixel_type=itk.SS
-    """
-    # import itk  # originally in the itk - commented out here
-    if fallback_only:
-        if pixel_type is None:
-            raise Exception("pixel_type must be set when using the fallback_only option")
-        try:
-            return itk_imread(filename)
-        except (KeyError, TemplateTypeError):  # the change from itk's source, originally: `except KeyError:`
-            pass
-    if type(filename) in [list, tuple]:
-        TemplateReaderType = itk.ImageSeriesReader
-        io_filename = filename[0]
-        increase_dimension = True
-        kwargs = {'FileNames': filename}
-    else:
-        TemplateReaderType = itk.ImageFileReader
-        io_filename = filename
-        increase_dimension = False
-        kwargs = {'FileName': filename}
-    if pixel_type:
-        # imageIO = itk.ImageIOFactory.CreateImageIO(io_filename, itk.CommonEnums.IOFileMode_ReadMode)
-        read_mode = 0
-        imageIO = itk.ImageIOFactory.CreateImageIO(io_filename, read_mode)
-        if not imageIO:
-            raise RuntimeError("No ImageIO is registered to handle the given file.")
-        imageIO.SetFileName(io_filename)
-        imageIO.ReadImageInformation()
-        dimension = imageIO.GetNumberOfDimensions()
-        # Increase dimension if last dimension is not of size one.
-        if increase_dimension and imageIO.GetDimensions(dimension - 1) != 1:
-            dimension += 1
-        ImageType = itk.Image[pixel_type, dimension]
-        reader = TemplateReaderType[ImageType].New(**kwargs)
-        # TODO: consider
-        #  reader.ForceOrthogonalDirectionOff()
-        #  when 'FileNames' in kwargs
-    else:
-        reader = TemplateReaderType.New(**kwargs)
-    reader.Update()
-    return reader.GetOutput()
