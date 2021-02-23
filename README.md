@@ -1,3 +1,4 @@
+[![Python version](https://img.shields.io/pypi/pyversions/medio.svg)](https://img.shields.io/pypi/pyversions/medio.svg)
 [![PyPI version](https://badge.fury.io/py/medio.svg)](https://badge.fury.io/py/medio)
 # medio
 
