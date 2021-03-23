@@ -237,7 +237,6 @@ class ItkIO:
         names_generator = itk.GDCMSeriesFileNames.New()
         names_generator.SetUseSeriesDetails(True)
         names_generator.AddSeriesRestriction('0008|0021')  # Series Date
-        names_generator.SetGlobalWarningDisplay(False)
         names_generator.SetDirectory(dirname)
 
         series_uid = names_generator.GetSeriesUIDs()
