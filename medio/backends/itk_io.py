@@ -322,6 +322,8 @@ class ItkIO:
         mdict['0054|0081'] = str(n)
         # Modality
         mdict['0008|0060'] = 'CT'
+        # Patient Position
+        mdict['0018|5100'] = ''
 
         if metadata_dict is not None:
             for key, val in metadata_dict.items():
