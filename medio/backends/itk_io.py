@@ -9,7 +9,7 @@ from medio.metadata.affine import Affine
 from medio.metadata.dcm_uid import generate_uid
 from medio.metadata.itk_orientation import itk_orientation_code
 from medio.metadata.metadata import MetaData, check_dcm_ornt
-from medio.utils.files import is_dicom, make_empty_dir
+from medio.utils.files import is_dicom, make_dir
 
 
 class ItkIO:
@@ -253,7 +253,7 @@ class ItkIO:
 
     @staticmethod
     def save_dcm_dir(dirname, image_np, metadata, use_original_ornt=True, components_axis=None, parents=False,
-                     allow_dcm_reorient=False, **kwargs):
+                     exist_ok=False, allow_dcm_reorient=False, **kwargs):
         """
         Save a 3d numpy array image_np as a dicom series of 2d dicom slices in the directory dirname
         :param dirname: the directory to save in the files, str or pathlib.Path. If it exists - must be empty
@@ -263,6 +263,7 @@ class ItkIO:
         :param components_axis: if not None - the image has more than 1 component (e.g. RGB) and the components are in
         components_axis
         :param parents: if True, creates also the parents of dirname
+        :param exist_ok: if True, non-empty existing directory will not raise an error
         :param allow_dcm_reorient: whether to allow automatic reorientation to a right-handed orientation or not
         :param kwargs: optional kwargs passed to ItkIO.dcm_metadata: pattern, metadata_dict
         """
@@ -272,7 +273,7 @@ class ItkIO:
         _, (pixel_type, _) = itk.template(image)
         image2d_type = itk.Image[pixel_type, 2]
         writer = itk.ImageSeriesWriter[image_type, image2d_type].New()
-        make_empty_dir(dirname, parents)
+        make_dir(dirname, parents, exist_ok)
         # Generate necessary metadata and filenames per slice:
         mdict_list, filenames = ItkIO.dcm_series_metadata(image, dirname, **kwargs)
         metadict_vec = itk.vector[itk.MetaDataDictionary](mdict_list)
