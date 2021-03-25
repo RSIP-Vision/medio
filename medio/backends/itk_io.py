@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Union
+from datetime import datetime
 
 import itk
 import numpy as np
@@ -307,6 +308,18 @@ class ItkIO:
         # Study Instance UID
         mdict['0020|000d'] = generate_uid()
 
+        date, time = datetime.now().strftime('%Y%m%d %H%M%S.%f').split()
+        # Study Date
+        mdict['0008|0020'] = date
+        # Series Date
+        mdict['0008|0021'] = date
+        # Content Date
+        mdict['0008|0023'] = date
+        # Study Time
+        mdict['0008|0030'] = time
+        # Series Time
+        mdict['0008|0031'] = time
+
         # Pixel Spacing - TODO: not necessary - automatically saved
         spacing = image.GetSpacing()
         mdict['0028|0030'] = f'{spacing[0]}\\{spacing[1]}'
@@ -316,6 +329,8 @@ class ItkIO:
         orientation_str = '\\'.join([str(image.GetDirection().GetVnlMatrix().get(i, j))
                                      for j in range(2) for i in range(3)])
         mdict['0020|0037'] = orientation_str
+        # Patient Position
+        mdict['0018|5100'] = ''
 
         # Number of Frames
         mdict['0028|0008'] = '1'
@@ -323,8 +338,6 @@ class ItkIO:
         mdict['0054|0081'] = str(n)
         # Modality
         mdict['0008|0060'] = 'CT'
-        # Patient Position
-        mdict['0018|5100'] = ''
 
         if metadata_dict is not None:
             for key, val in metadata_dict.items():
