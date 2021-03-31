@@ -250,6 +250,8 @@ class ItkIO:
 
         series_identifier = series_uid[0]
         filenames = names_generator.GetFileNames(series_identifier)
+        if len(filenames) == 1:
+            filenames = filenames[0]  # there is a single image in the series
         return itk.imread(filenames, pixel_type, fallback_only)
 
     @staticmethod
