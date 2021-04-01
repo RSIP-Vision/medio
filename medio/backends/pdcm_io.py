@@ -11,7 +11,10 @@ from medio.metadata.pdcm_ds import convert_ds, MultiFrameFileDataset
 
 class PdcmIO:
     coord_sys = 'itk'
-    DEFAULT_CHANNELS_AXIS = 0  # in the transposed image
+    # channels axes in the transposed image for pydicom and dicom-numpy. The actual axis is the first or the second
+    # value of the tuple, according to the planar configuration (which is either 0 or 1)
+    DEFAULT_CHANNELS_AXES_PYDICOM = (0, -1)
+    DEFAULT_CHANNELS_AXES_DICOM_NUMPY = (0, 2)
 
     @staticmethod
     def read_img(input_path, header=False, channels_axis=None, globber='*', allow_default_affine=False):
@@ -45,7 +48,9 @@ class PdcmIO:
         metadata = PdcmIO.aff2meta(affine)
         if header:
             metadata.header = {str(key): ds[key] for key in ds.keys()}
-        img = PdcmIO.move_channels_axis(img, samples_per_pixel=ds.SamplesPerPixel, channels_axis=channels_axis)
+        img = PdcmIO.move_channels_axis(img, samples_per_pixel=ds.SamplesPerPixel, channels_axis=channels_axis,
+                                        planar_configuration=ds.get('PlanarConfiguration', None),
+                                        default_axes=PdcmIO.DEFAULT_CHANNELS_AXES_PYDICOM)
         return img, metadata
 
     @staticmethod
@@ -55,11 +60,14 @@ class PdcmIO:
         files = list(Path(input_dir).glob(globber))
         if len(files) == 0:
             raise FileNotFoundError(f'Received an empty directory: "{input_dir}"')
+        # TODO: filter by
         slices = [pydicom.dcmread(filename) for filename in files]
         slices.sort(key=lambda ds: ds.get('InstanceNumber', 0))
         img, affine = combine_slices(slices)
         metadata = PdcmIO.aff2meta(affine)
-        img = PdcmIO.move_channels_axis(img, samples_per_pixel=slices[0].SamplesPerPixel, channels_axis=channels_axis)
+        img = PdcmIO.move_channels_axis(img, samples_per_pixel=slices[0].SamplesPerPixel, channels_axis=channels_axis,
+                                        planar_configuration=slices[0].get('PlanarConfiguration', None),
+                                        default_axes=PdcmIO.DEFAULT_CHANNELS_AXES_DICOM_NUMPY)
         return img, metadata
 
     @staticmethod
@@ -67,12 +75,33 @@ class PdcmIO:
         return MetaData(affine, coord_sys=PdcmIO.coord_sys)
 
     @staticmethod
-    def move_channels_axis(array, samples_per_pixel, source=DEFAULT_CHANNELS_AXIS, channels_axis=None):
-        # TODO: the following assert is not always True, depends on Planar Configuration (0028,0006)
-        # assert array.shape[source] == samples_per_pixel
-        if (samples_per_pixel > 1) and (channels_axis is not None):
-            return np.moveaxis(array, source, channels_axis)
-        return array
+    def move_channels_axis(array, samples_per_pixel, channels_axis=None, planar_configuration=None,
+                           default_axes=DEFAULT_CHANNELS_AXES_PYDICOM):
+        """Move the channels axis from the original axis to the destined channels_axis"""
+        if (samples_per_pixel == 1) or (channels_axis is None):
+            # no rearrangement is needed
+            return array
+
+        # extract the original channels axis
+        if planar_configuration not in [0, 1]:
+            raise ValueError(f'Invalid Planar Configuration value: {planar_configuration}')
+
+        orig_axis = default_axes[planar_configuration]
+        flag = True  # original channels axis is assigned
+        shape = array.shape
+        # validate that the assigned axis matches samples_per_pixel, if not - try to search for it
+        if shape[orig_axis] != samples_per_pixel:
+            flag = False
+            for i, sz in enumerate(shape):
+                if sz == samples_per_pixel:
+                    orig_axis = i
+                    flag = True
+
+        if not flag:
+            raise ValueError('The original channels axis was not detected')
+
+        return np.moveaxis(array, orig_axis, channels_axis)
+
 
     @staticmethod
     def save_arr2dcm_file(output_filename, template_filename, img_arr, dtype=None, keep_rescale=False):
