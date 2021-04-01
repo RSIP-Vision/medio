@@ -35,3 +35,10 @@ def make_empty_dir(dir_path, parents=False):
             pass  # the directory exists but empty - ok
         else:
             raise FileExistsError(f'The directory "{dir_path}" is not empty')
+
+
+def make_dir(dir_path, parents=False, exist_ok=False):
+    if exist_ok:
+        Path(dir_path).mkdir(parents=parents, exist_ok=exist_ok)
+    else:
+        make_empty_dir(dir_path, parents)

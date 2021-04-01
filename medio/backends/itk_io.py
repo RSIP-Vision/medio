@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 from typing import Union
 
@@ -8,7 +9,7 @@ from medio.metadata.affine import Affine
 from medio.metadata.dcm_uid import generate_uid
 from medio.metadata.itk_orientation import itk_orientation_code
 from medio.metadata.metadata import MetaData, check_dcm_ornt
-from medio.utils.files import is_dicom, make_empty_dir
+from medio.utils.files import is_dicom, make_dir
 
 
 class ItkIO:
@@ -34,8 +35,10 @@ class ItkIO:
         coordinates system
         """
         input_path = Path(input_path)
-        if input_path.exists():
-            img = itk.imread(str(input_path), pixel_type, fallback_only)
+        if input_path.is_dir():
+            img = ItkIO.read_dir(str(input_path), pixel_type, fallback_only)
+        elif input_path.is_file():
+            img = ItkIO.read_img_file(str(input_path), pixel_type, fallback_only)
         else:
             raise FileNotFoundError(f'No such file or directory: "{input_path}"')
 
@@ -121,6 +124,11 @@ class ItkIO:
                                   '2. 3d images with integer nonnegative values - uint8, uint16\n'
                                   '3. 2d/3d RGB[A] images - uint8 (with channels_axis)\n'
                                   'For negative values, try to save a dicom directory or use PdcmIO.save_arr2dcm_file')
+
+    @staticmethod
+    def read_img_file(filename, pixel_type=None, fallback_only=False):
+        """Common pixel types: itk.SS (int16), itk.US (uint16), itk.UC (uint8)"""
+        return itk.imread(filename, pixel_type, fallback_only)
 
     @staticmethod
     def read_img_file_long(filename, image_type=image_type):
@@ -219,8 +227,34 @@ class ItkIO:
         return reoriented_itk_img, original_orientation_code
 
     @staticmethod
+    def read_dir(dirname, pixel_type=None, fallback_only=False):
+        """
+        Read a dicom directory. If there is more than one series in the directory an error is raised
+        Shorter option for a single series (provided the slices order is known):
+        >>> itk.imread([filename0, filename1, ...])
+        """
+        names_generator = itk.GDCMSeriesFileNames.New()
+        names_generator.SetUseSeriesDetails(True)
+        names_generator.AddSeriesRestriction('0008|0021')  # Series Date
+        names_generator.SetDirectory(dirname)
+
+        series_uid = names_generator.GetSeriesUIDs()
+
+        if len(series_uid) == 0:
+            raise FileNotFoundError(f'No DICOMs in: "{dirname}"')
+        if len(series_uid) > 1:
+            raise OSError(f'The directory: "{dirname}"\n'
+                          f'contains more than one DICOM series')
+
+        series_identifier = series_uid[0]
+        filenames = names_generator.GetFileNames(series_identifier)
+        if len(filenames) == 1:
+            filenames = filenames[0]  # there is a single image in the series
+        return itk.imread(filenames, pixel_type, fallback_only)
+
+    @staticmethod
     def save_dcm_dir(dirname, image_np, metadata, use_original_ornt=True, components_axis=None, parents=False,
-                     allow_dcm_reorient=False, **kwargs):
+                     exist_ok=False, allow_dcm_reorient=False, **kwargs):
         """
         Save a 3d numpy array image_np as a dicom series of 2d dicom slices in the directory dirname
         :param dirname: the directory to save in the files, str or pathlib.Path. If it exists - must be empty
@@ -230,6 +264,7 @@ class ItkIO:
         :param components_axis: if not None - the image has more than 1 component (e.g. RGB) and the components are in
         components_axis
         :param parents: if True, creates also the parents of dirname
+        :param exist_ok: if True, non-empty existing directory will not raise an error
         :param allow_dcm_reorient: whether to allow automatic reorientation to a right-handed orientation or not
         :param kwargs: optional kwargs passed to ItkIO.dcm_metadata: pattern, metadata_dict
         """
@@ -239,7 +274,7 @@ class ItkIO:
         _, (pixel_type, _) = itk.template(image)
         image2d_type = itk.Image[pixel_type, 2]
         writer = itk.ImageSeriesWriter[image_type, image2d_type].New()
-        make_empty_dir(dirname, parents)
+        make_dir(dirname, parents, exist_ok)
         # Generate necessary metadata and filenames per slice:
         mdict_list, filenames = ItkIO.dcm_series_metadata(image, dirname, **kwargs)
         metadict_vec = itk.vector[itk.MetaDataDictionary](mdict_list)
@@ -273,6 +308,18 @@ class ItkIO:
         # Study Instance UID
         mdict['0020|000d'] = generate_uid()
 
+        date, time = datetime.now().strftime('%Y%m%d %H%M%S.%f').split()
+        # Study Date
+        mdict['0008|0020'] = date
+        # Series Date
+        mdict['0008|0021'] = date
+        # Content Date
+        mdict['0008|0023'] = date
+        # Study Time
+        mdict['0008|0030'] = time
+        # Series Time
+        mdict['0008|0031'] = time
+
         # Pixel Spacing - TODO: not necessary - automatically saved
         spacing = image.GetSpacing()
         mdict['0028|0030'] = f'{spacing[0]}\\{spacing[1]}'
@@ -282,6 +329,8 @@ class ItkIO:
         orientation_str = '\\'.join([str(image.GetDirection().GetVnlMatrix().get(i, j))
                                      for j in range(2) for i in range(3)])
         mdict['0020|0037'] = orientation_str
+        # Patient Position
+        mdict['0018|5100'] = ''
 
         # Number of Frames
         mdict['0028|0008'] = '1'
