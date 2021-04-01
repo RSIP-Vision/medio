@@ -1,10 +1,9 @@
+from datetime import datetime
 from pathlib import Path
 from typing import Union
-from datetime import datetime
 
 import itk
 import numpy as np
-from itkTemplate import TemplateTypeError
 
 from medio.metadata.affine import Affine
 from medio.metadata.dcm_uid import generate_uid
