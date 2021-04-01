@@ -1,10 +1,13 @@
 from pathlib import Path
 
-import pydicom
+import nibabel as nib
 import numpy as np
+import pydicom
 from dicom_numpy import combine_slices
 
+from medio.backends.nib_io import NibIO
 from medio.backends.pdcm_unpack_ds import unpack_dataset
+from medio.metadata.convert_nib_itk import inv_axcodes
 from medio.metadata.metadata import MetaData
 from medio.metadata.pdcm_ds import convert_ds, MultiFrameFileDataset
 
@@ -17,10 +20,12 @@ class PdcmIO:
     DEFAULT_CHANNELS_AXES_DICOM_NUMPY = (0, 2)
 
     @staticmethod
-    def read_img(input_path, header=False, channels_axis=None, globber='*', allow_default_affine=False):
+    def read_img(input_path, desired_ornt=None, header=False, channels_axis=None, globber='*',
+                 allow_default_affine=False):
         """
         Read a dicom file or folder (series) and return the numpy array and the corresponding metadata
         :param input_path: path-like object (str or pathlib.Path) of the file or directory to read
+        :param desired_ornt: str, tuple of str or None - the desired orientation of the image to be returned
         :param globber: relevant for a directory - globber for selecting the series files (all files by default)
         :param header: whether to include a header attribute with additional metadata in the returned metadata (single
         file only)
@@ -30,15 +35,25 @@ class PdcmIO:
         :return: numpy array and metadata
         """
         input_path = Path(input_path)
+        temp_channels_axis = -1  # if there are channels, they must be in the last axis for the reorientation
         if input_path.is_dir():
-            return PdcmIO.read_dcm_dir(input_path, globber, channels_axis=channels_axis)
+            # TODO: add header support
+            img, metadata, channeled = PdcmIO.read_dcm_dir(input_path, globber, channels_axis=temp_channels_axis)
         else:
-            return PdcmIO.read_dcm_file(input_path, header, allow_default_affine=allow_default_affine,
-                                        channels_axis=channels_axis)
+            img, metadata, channeled = PdcmIO.read_dcm_file(
+                input_path, header, allow_default_affine=allow_default_affine, channels_axis=temp_channels_axis)
+        img, metadata = PdcmIO.reorient(img, metadata, desired_ornt)
+        # move the channels after the reorientation
+        if channeled and channels_axis != temp_channels_axis:
+            img = np.moveaxis(img, temp_channels_axis, channels_axis)
+        return img, metadata
 
     @staticmethod
     def read_dcm_file(filename, header=False, allow_default_affine=False, channels_axis=None):
-        """Read a single dicom file"""
+        """
+        Read a single dicom file.
+        Return the image array, metadata, and whether it has channels
+        """
         ds = pydicom.dcmread(filename)
         ds = convert_ds(ds)
         if ds.__class__ is MultiFrameFileDataset:
@@ -48,27 +63,32 @@ class PdcmIO:
         metadata = PdcmIO.aff2meta(affine)
         if header:
             metadata.header = {str(key): ds[key] for key in ds.keys()}
-        img = PdcmIO.move_channels_axis(img, samples_per_pixel=ds.SamplesPerPixel, channels_axis=channels_axis,
+        samples_per_pixel = ds.SamplesPerPixel
+        img = PdcmIO.move_channels_axis(img, samples_per_pixel=samples_per_pixel, channels_axis=channels_axis,
                                         planar_configuration=ds.get('PlanarConfiguration', None),
                                         default_axes=PdcmIO.DEFAULT_CHANNELS_AXES_PYDICOM)
-        return img, metadata
+        return img, metadata, samples_per_pixel > 1
 
     @staticmethod
     def read_dcm_dir(input_dir, globber='*', channels_axis=None):
-        """Reads a 3D dicom image: input path can be a file or directory (DICOM series)"""
+        """
+        Reads a 3D dicom image: input path can be a file or directory (DICOM series).
+        Return the image array, metadata, and whether it has channels
+        """
         # find all dicom files within the specified folder, read every file separately and sort them by InstanceNumber
         files = list(Path(input_dir).glob(globber))
         if len(files) == 0:
             raise FileNotFoundError(f'Received an empty directory: "{input_dir}"')
-        # TODO: filter by
+        # TODO: filter by Series Instance UID
         slices = [pydicom.dcmread(filename) for filename in files]
         slices.sort(key=lambda ds: ds.get('InstanceNumber', 0))
         img, affine = combine_slices(slices)
         metadata = PdcmIO.aff2meta(affine)
-        img = PdcmIO.move_channels_axis(img, samples_per_pixel=slices[0].SamplesPerPixel, channels_axis=channels_axis,
+        samples_per_pixel = slices[0].SamplesPerPixel
+        img = PdcmIO.move_channels_axis(img, samples_per_pixel=samples_per_pixel, channels_axis=channels_axis,
                                         planar_configuration=slices[0].get('PlanarConfiguration', None),
                                         default_axes=PdcmIO.DEFAULT_CHANNELS_AXES_DICOM_NUMPY)
-        return img, metadata
+        return img, metadata, samples_per_pixel > 1
 
     @staticmethod
     def aff2meta(affine):
@@ -96,12 +116,40 @@ class PdcmIO:
                 if sz == samples_per_pixel:
                     orig_axis = i
                     flag = True
+                    break
 
         if not flag:
             raise ValueError('The original channels axis was not detected')
 
         return np.moveaxis(array, orig_axis, channels_axis)
 
+    @staticmethod
+    def reorient(img, metadata, desired_ornt):
+        """
+        Reorient img array and affine (in the metadata) to desired_ornt using nibabel.
+        desired_ornt is in itk convention.
+        Note that if img has channels (RGB for example), they must be in last axis
+        """
+        if desired_ornt is None:
+            return img, metadata
+        # convert from pydicom (itk) to nibabel convention
+        metadata.convert(NibIO.coord_sys)
+        desired_ornt = inv_axcodes(desired_ornt)
+        # use nibabel for the reorientation
+        img_struct = nib.spatialimages.SpatialImage(img, metadata.affine)
+        reoriented_img_struct = NibIO.reorient(img_struct, desired_ornt)
+
+        if reoriented_img_struct is img_struct:
+            # trivial reorientation - the data has not changed
+            metadata.convert(PdcmIO.coord_sys)
+            return img, metadata
+
+        img = np.asanyarray(reoriented_img_struct.dataobj)
+        metadata = MetaData(reoriented_img_struct.affine, orig_ornt=metadata.orig_ornt, coord_sys=NibIO.coord_sys,
+                            header=metadata.header)
+        # convert back to pydicom convention
+        metadata.convert(PdcmIO.coord_sys)
+        return img, metadata
 
     @staticmethod
     def save_arr2dcm_file(output_filename, template_filename, img_arr, dtype=None, keep_rescale=False):

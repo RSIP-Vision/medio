@@ -13,9 +13,8 @@ def read_img(input_path, desired_ornt=None, backend=None, dtype=None, header=Fal
     """
     Read medical image with nibabel or itk
     :param input_path: str or os.PathLike, the input path of image file or a directory containing dicom series
-    :param desired_ornt: optional parameter for reorienting the image to desired orientation, e.g. 'RAS'
-    The desired_ornt string is in the convention of `coord_sys` argument (itk by default). If NibIO is used, the
-    orientation is converted accordingly
+    :param desired_ornt: optional parameter for reorienting the image to a desired orientation, e.g. 'RAS'.
+    The desired_ornt string is in the convention of `coord_sys` argument (itk by default).
     :param backend: optional parameter for setting the reader backend: 'itk', 'nib', 'pdcm' (also 'pydicom') or None
     :param dtype: equivalent to np_image.astype(dtype) if dtype is not None
     :param header: if True, the returned metadata will include a header attribute with additional metadata dictionary as
@@ -41,9 +40,6 @@ def read_img(input_path, desired_ornt=None, backend=None, dtype=None, header=Fal
         elif backend == 'itk':
             reader, reader_sys = itk_reader_data
         elif backend in ('pdcm', 'pydicom'):
-            if desired_ornt is not None:
-                raise NotImplementedError('Pydicom reader backend does not yet support reorientation. The passed '
-                                          'desired orientation must be None (default).')
             reader, reader_sys = pdcm_reader_data
         else:
             raise ValueError('The backend argument must be one of: "itk", "nib", "pdcm" (or "pydicom"), None')
@@ -51,10 +47,7 @@ def read_img(input_path, desired_ornt=None, backend=None, dtype=None, header=Fal
     if (coord_sys is not None) and (coord_sys != reader_sys):
         desired_ornt = inv_axcodes(desired_ornt)
 
-    if reader is pdcm_reader_data[0]:
-        np_image, metadata = reader(input_path, header, channels_axis, **kwargs)
-    else:
-        np_image, metadata = reader(input_path, desired_ornt, header, channels_axis, **kwargs)
+    np_image, metadata = reader(input_path, desired_ornt, header, channels_axis, **kwargs)
 
     if dtype is not None:
         np_image = np_image.astype(dtype, copy=False)
@@ -100,8 +93,10 @@ def save_img(filename, np_image, metadata, use_original_ornt=True, backend=None,
 
 def save_dir(dirname, np_image, metadata, use_original_ornt=True, dtype=None, channels_axis=None, parents=False,
              exist_ok=False, allow_dcm_reorient=False, **kwargs):
-    """Save image as a dicom directory. See medio.backends.itk_io.ItkIO.save_dcm_dir documentation.
-    dtype is equivalent to passing image_np.astype(dtype) if dtype is not None"""
+    """
+    Save image as a dicom directory. See medio.backends.itk_io.ItkIO.save_dcm_dir documentation.
+    dtype is equivalent to passing image_np.astype(dtype) if dtype is not None
+    """
     if dtype is not None:
         np_image = np_image.astype(dtype, copy=False)
     ItkIO.save_dcm_dir(dirname, np_image, metadata, use_original_ornt, channels_axis, parents, exist_ok,
