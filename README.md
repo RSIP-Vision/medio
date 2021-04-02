@@ -145,7 +145,7 @@ Optional parameters:
 
 ### save_dir
 `medio.save_dir(dirname, np_image, metadata, use_original_ornt=True, dtype=None, channels_axis=None,
-parents=False, allow_dcm_reorient=False, **kwargs)`
+parents=False, exist_ok=False, allow_dcm_reorient=False, **kwargs)`
 
 Save a 3d numpy array `np_image` as a dicom series of 2d slices in the directory `dirname` (itk 
 backend).
@@ -156,7 +156,9 @@ backend).
 The other parameters: `np_image`, `metadata`, `use_original_ornt`, `dtype`, `channels_axis`, 
 `parents` and `allow_dcm_reorient` are equivalent to those used in [save_img](#save_img).
 
-Additional optional parameters (`**kwargs`): 
+Additional optional parameters (`**kwargs`):
+- `exist_ok`: *bool*<br>
+  If True, non-empty existing directory will not raise an error.
 - `pattern='IM{}.dcm'`: *str*<br>
   Pattern for the filenames to save, including a placeholder ('`{}`') for the slice number.
 - `metadata_dict=None`: *dict or None*<br>
