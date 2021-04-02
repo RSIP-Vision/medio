@@ -17,7 +17,7 @@ setup(name='medio',
       keywords=['medical-images', 'IO', 'itk', 'nibabel', 'pydicom', 'python'],
       packages=find_packages(exclude=['*.tests']),
       install_requires=[
-            'itk >= 5.2rc3',
+            'itk >= 5.1.2',
             'nibabel >= 3.2.1',
             'pydicom >= 2.1.2',
             'dicom-numpy >= 0.5.0',

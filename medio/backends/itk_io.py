@@ -52,7 +52,8 @@ class ItkIO:
             image_np, affine = ItkIO.unpack_img(img)
             metadata = MetaData(affine=affine, orig_ornt=orig_ornt, coord_sys=ItkIO.coord_sys)
         if header:
-            metadata.header = {key: img[key] for key in img.keys()}
+            metadict = img.GetMetaDataDictionary()
+            metadata.header = {key: metadict[key] for key in metadict.GetKeys() if not key.startswith('ITK_')}
         # TODO: consider unifying with PdcmIO.move_channels_axis
         n_components = img.GetNumberOfComponentsPerPixel()
         if (n_components > 1) and (components_axis is not None):
