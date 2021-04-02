@@ -92,6 +92,10 @@ class MetaData:
 
 
 def is_right_handed_axcodes(axcodes):
+    if len(axcodes) == 2:
+        return True
+    if len(axcodes) != 3:
+        raise ValueError(f'Invalid axcodes (not length 3 or 2): "{axcodes}"')
     letter_vec_dict = {'R': [1, 0, 0],
                        'L': [-1, 0, 0],
                        'A': [0, 1, 0],

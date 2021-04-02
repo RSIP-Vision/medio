@@ -54,11 +54,13 @@ class ItkIO:
         if header:
             metadict = img.GetMetaDataDictionary()
             metadata.header = {key: metadict[key] for key in metadict.GetKeys() if not key.startswith('ITK_')}
+
         # TODO: consider unifying with PdcmIO.move_channels_axis
         n_components = img.GetNumberOfComponentsPerPixel()
         if (n_components > 1) and (components_axis is not None):
-            # assert image_np.shape[ItkIO.DEFAULT_COMPONENTS_AXIS] == n_components  # TODO: is that always True?
+            # assert image_np.shape[ItkIO.DEFAULT_COMPONENTS_AXIS] == n_components
             image_np = np.moveaxis(image_np, ItkIO.DEFAULT_COMPONENTS_AXIS, components_axis)
+
         return image_np, metadata
 
     @staticmethod
@@ -107,9 +109,7 @@ class ItkIO:
             # for 3d image the supported data types are:
             dcm_dtypes = [np.uint8, np.uint16]
             # if the image is 2d it can be signed
-            image_np_sq = np.squeeze(image_np)
-            if image_np_sq.ndim == 2:
-                # image_np = image_np_sq[..., np.newaxis]  # TODO: why?
+            if np.squeeze(image_np).ndim == 2:
                 dcm_dtypes = [np.int16] + dcm_dtypes
 
         if image_np.dtype in dcm_dtypes:
@@ -321,7 +321,7 @@ class ItkIO:
         # Series Time
         mdict['0008|0031'] = time
 
-        # Pixel Spacing - TODO: not necessary - automatically saved
+        # Pixel Spacing (not necessary - automatically saved)
         spacing = image.GetSpacing()
         mdict['0028|0030'] = f'{spacing[0]}\\{spacing[1]}'
         # Spacing Between Slices
