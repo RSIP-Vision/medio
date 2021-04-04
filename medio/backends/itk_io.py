@@ -234,6 +234,12 @@ class ItkIO:
         Shorter option for a single series (provided the slices order is known):
         >>> itk.imread([filename0, filename1, ...])
         """
+        filenames = ItkIO.extract_series(dirname)
+        return itk.imread(filenames, pixel_type, fallback_only)
+
+    @staticmethod
+    def extract_series(dirname):
+        """Extract series filenames from the directory dirname"""
         names_generator = itk.GDCMSeriesFileNames.New()
         names_generator.SetUseSeriesDetails(True)
         names_generator.AddSeriesRestriction('0008|0021')  # Series Date
@@ -251,7 +257,8 @@ class ItkIO:
         filenames = names_generator.GetFileNames(series_identifier)
         if len(filenames) == 1:
             filenames = filenames[0]  # there is a single image in the series
-        return itk.imread(filenames, pixel_type, fallback_only)
+
+        return filenames
 
     @staticmethod
     def save_dcm_dir(dirname, image_np, metadata, use_original_ornt=True, components_axis=None, parents=False,

@@ -76,6 +76,18 @@ class PdcmIO:
         Return the image array, metadata, and whether it has channels
         """
         # find all dicom files within the specified folder, read every file separately and sort them by InstanceNumber
+        slices = PdcmIO.extract_slices(input_dir, globber=globber)
+        img, affine = combine_slices(slices)
+        metadata = PdcmIO.aff2meta(affine)
+        samples_per_pixel = slices[0].SamplesPerPixel
+        img = PdcmIO.move_channels_axis(img, samples_per_pixel=samples_per_pixel, channels_axis=channels_axis,
+                                        planar_configuration=slices[0].get('PlanarConfiguration', None),
+                                        default_axes=PdcmIO.DEFAULT_CHANNELS_AXES_DICOM_NUMPY)
+        return img, metadata, samples_per_pixel > 1
+
+    @staticmethod
+    def extract_slices(input_dir, globber='*'):
+        """Extract slices from input_dir and return them sorted"""
         files = list(Path(input_dir).glob(globber))
         if len(files) == 0:
             raise FileNotFoundError(f'Received an empty directory: "{input_dir}"')
@@ -93,13 +105,7 @@ class PdcmIO:
                              f'contains more than a single DICOM series')
 
         slices.sort(key=lambda ds: ds.get('InstanceNumber', 0))
-        img, affine = combine_slices(slices)
-        metadata = PdcmIO.aff2meta(affine)
-        samples_per_pixel = slices[0].SamplesPerPixel
-        img = PdcmIO.move_channels_axis(img, samples_per_pixel=samples_per_pixel, channels_axis=channels_axis,
-                                        planar_configuration=slices[0].get('PlanarConfiguration', None),
-                                        default_axes=PdcmIO.DEFAULT_CHANNELS_AXES_DICOM_NUMPY)
-        return img, metadata, samples_per_pixel > 1
+        return slices
 
     @staticmethod
     def aff2meta(affine):
