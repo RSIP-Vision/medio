@@ -10,6 +10,7 @@ from medio.metadata.dcm_uid import generate_uid
 from medio.metadata.itk_orientation import itk_orientation_code
 from medio.metadata.metadata import MetaData, check_dcm_ornt
 from medio.utils.files import is_dicom, make_dir
+from medio.utils.files import parse_series_uids
 
 
 class ItkIO:
@@ -22,21 +23,22 @@ class ItkIO:
 
     @staticmethod
     def read_img(input_path, desired_axcodes=None, header=False, components_axis=None, pixel_type=pixel_type,
-                 fallback_only=True):
+                 fallback_only=True, series=None):
         """
         The main reader function, reads images and performs reorientation and unpacking
         :param input_path: path of image file or directory containing dicom series
         :param desired_axcodes: string or tuple - e.g. 'LPI', ('R', 'A', 'S')
-        :param pixel_type: preferred itk pixel type for the image
-        :param fallback_only: if True, finds the pixel_type automatically and uses pixel_type only if failed
         :param header: whether to include a header attribute with additional metadata in the returned metadata
         :param components_axis: if not None and the image is channeled (e.g. RGB) move the channels to channels_axis
+        :param pixel_type: preferred itk pixel type for the image
+        :param fallback_only: if True, finds the pixel_type automatically and uses pixel_type only if failed
+        :param series: str or int of the series to read (in the case of multiple series in a directory)
         :return: numpy image and metadata object which includes pixdim, affine, original orientation string and
         coordinates system
         """
         input_path = Path(input_path)
         if input_path.is_dir():
-            img = ItkIO.read_dir(str(input_path), pixel_type, fallback_only)
+            img = ItkIO.read_dir(str(input_path), pixel_type, fallback_only, series=series)
         elif input_path.is_file():
             img = ItkIO.read_img_file(str(input_path), pixel_type, fallback_only)
         else:
@@ -228,31 +230,25 @@ class ItkIO:
         return reoriented_itk_img, original_orientation_code
 
     @staticmethod
-    def read_dir(dirname, pixel_type=None, fallback_only=False):
+    def read_dir(dirname, pixel_type=None, fallback_only=False, series=None):
         """
         Read a dicom directory. If there is more than one series in the directory an error is raised
         Shorter option for a single series (provided the slices order is known):
         >>> itk.imread([filename0, filename1, ...])
         """
-        filenames = ItkIO.extract_series(dirname)
+        filenames = ItkIO.extract_series(dirname, series)
         return itk.imread(filenames, pixel_type, fallback_only)
 
     @staticmethod
-    def extract_series(dirname):
+    def extract_series(dirname, series=None):
         """Extract series filenames from the directory dirname"""
         names_generator = itk.GDCMSeriesFileNames.New()
         names_generator.SetDirectory(dirname)
 
-        series_uid = names_generator.GetSeriesUIDs()
+        series_uids = names_generator.GetSeriesUIDs()
+        series_uid = parse_series_uids(dirname, series_uids, series)
 
-        if len(series_uid) == 0:
-            raise FileNotFoundError(f'No DICOMs in: "{dirname}"')
-        if len(series_uid) > 1:
-            raise ValueError(f'The directory: "{dirname}"\n'
-                             f'contains more than a single DICOM series')
-
-        series_identifier = series_uid[0]
-        filenames = names_generator.GetFileNames(series_identifier)
+        filenames = names_generator.GetFileNames(series_uid)
         if len(filenames) == 1:
             filenames = filenames[0]  # there is a single image in the series
 

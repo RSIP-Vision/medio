@@ -10,6 +10,7 @@ from medio.backends.pdcm_unpack_ds import unpack_dataset
 from medio.metadata.convert_nib_itk import inv_axcodes
 from medio.metadata.metadata import MetaData
 from medio.metadata.pdcm_ds import convert_ds, MultiFrameFileDataset
+from medio.utils.files import parse_series_uids
 
 
 class PdcmIO:
@@ -21,24 +22,26 @@ class PdcmIO:
 
     @staticmethod
     def read_img(input_path, desired_ornt=None, header=False, channels_axis=None, globber='*',
-                 allow_default_affine=False):
+                 allow_default_affine=False, series=None):
         """
         Read a dicom file or folder (series) and return the numpy array and the corresponding metadata
         :param input_path: path-like object (str or pathlib.Path) of the file or directory to read
         :param desired_ornt: str, tuple of str or None - the desired orientation of the image to be returned
-        :param globber: relevant for a directory - globber for selecting the series files (all files by default)
         :param header: whether to include a header attribute with additional metadata in the returned metadata (single
         file only)
         :param channels_axis: if not None and the image is channeled (e.g. RGB) move the channels to channels_axis in
         the returned image array
+        :param globber: relevant for a directory - globber for selecting the series files (all files by default)
         :param allow_default_affine: whether to allow default affine when some tags are missing (multiframe file only)
+        :param series: str or int of the series to read (in the case of multiple series in a directory)
         :return: numpy array and metadata
         """
         input_path = Path(input_path)
         temp_channels_axis = -1  # if there are channels, they must be in the last axis for the reorientation
         if input_path.is_dir():
             # TODO: add header support
-            img, metadata, channeled = PdcmIO.read_dcm_dir(input_path, globber, channels_axis=temp_channels_axis)
+            img, metadata, channeled = PdcmIO.read_dcm_dir(input_path, globber, channels_axis=temp_channels_axis,
+                                                           series=series)
         else:
             img, metadata, channeled = PdcmIO.read_dcm_file(
                 input_path, header, allow_default_affine=allow_default_affine, channels_axis=temp_channels_axis)
@@ -70,13 +73,13 @@ class PdcmIO:
         return img, metadata, samples_per_pixel > 1
 
     @staticmethod
-    def read_dcm_dir(input_dir, globber='*', channels_axis=None):
+    def read_dcm_dir(input_dir, globber='*', channels_axis=None, series=None):
         """
         Reads a 3D dicom image: input path can be a file or directory (DICOM series).
         Return the image array, metadata, and whether it has channels
         """
         # find all dicom files within the specified folder, read every file separately and sort them by InstanceNumber
-        slices = PdcmIO.extract_slices(input_dir, globber=globber)
+        slices = PdcmIO.extract_slices(input_dir, globber=globber, series=series)
         img, affine = combine_slices(slices)
         metadata = PdcmIO.aff2meta(affine)
         samples_per_pixel = slices[0].SamplesPerPixel
@@ -86,23 +89,19 @@ class PdcmIO:
         return img, metadata, samples_per_pixel > 1
 
     @staticmethod
-    def extract_slices(input_dir, globber='*'):
+    def extract_slices(input_dir, globber='*', series=None):
         """Extract slices from input_dir and return them sorted"""
-        files = list(Path(input_dir).glob(globber))
-        if len(files) == 0:
-            raise FileNotFoundError(f'Received an empty directory: "{input_dir}"')
+        files = Path(input_dir).glob(globber)
         slices = [pydicom.dcmread(filename) for filename in files]
-        if not slices:
-            raise FileNotFoundError(f'No DICOMs in: "{input_dir}"')
 
         # filter by Series Instance UID
         datasets = {}
         for slc in slices:
-            series_id = slc.SeriesInstanceUID
-            datasets[series_id] = datasets.get(series_id, []) + [slc]
-        if len(datasets) > 1:
-            raise ValueError(f'The directory: "{input_dir}"\n'
-                             f'contains more than a single DICOM series')
+            key = slc.SeriesInstanceUID
+            datasets[key] = datasets.get(key, []) + [slc]
+
+        series_uid = parse_series_uids(input_dir, datasets.keys(), series, globber)
+        slices = datasets[series_uid]
 
         slices.sort(key=lambda ds: ds.get('InstanceNumber', 0))
         return slices

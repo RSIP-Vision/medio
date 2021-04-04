@@ -23,8 +23,8 @@ class NibIO:
         Reads a NIFTI file and returns the image array and metadata
         :param input_path: path-like (str or pathlib.Path) of the image file to read
         :param desired_axcodes: str, tuple of str or None - the desired orientation of the image to be returned
-        :param channels_axis: if not None and the array dtype is structured, stacks the channels along channels_axis
         :param header: whether to include a header attribute with additional metadata in the returned metadata
+        :param channels_axis: if not None and the array dtype is structured, stacks the channels along channels_axis
         :return: image array and corresponding metadata
         """
         img_struct = nib.load(input_path)
