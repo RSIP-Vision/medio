@@ -79,8 +79,19 @@ class PdcmIO:
         files = list(Path(input_dir).glob(globber))
         if len(files) == 0:
             raise FileNotFoundError(f'Received an empty directory: "{input_dir}"')
-        # TODO: filter by Series Instance UID
         slices = [pydicom.dcmread(filename) for filename in files]
+        if not slices:
+            raise FileNotFoundError(f'No DICOMs in: "{input_dir}"')
+
+        # filter by Series Instance UID and Series Date
+        datasets = {}
+        for slc in slices:
+            series_id = (slc.SeriesInstanceUID, slc.SeriesDate)
+            datasets[series_id] = datasets.get(series_id, []) + [slc]
+        if len(datasets) > 1:
+            raise ValueError(f'The directory: "{input_dir}"\n'
+                             f'contains more than a single DICOM series')
+
         slices.sort(key=lambda ds: ds.get('InstanceNumber', 0))
         img, affine = combine_slices(slices)
         metadata = PdcmIO.aff2meta(affine)

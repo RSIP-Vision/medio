@@ -244,8 +244,8 @@ class ItkIO:
         if len(series_uid) == 0:
             raise FileNotFoundError(f'No DICOMs in: "{dirname}"')
         if len(series_uid) > 1:
-            raise OSError(f'The directory: "{dirname}"\n'
-                          f'contains more than one DICOM series')
+            raise ValueError(f'The directory: "{dirname}"\n'
+                             f'contains more than a single DICOM series')
 
         series_identifier = series_uid[0]
         filenames = names_generator.GetFileNames(series_identifier)
