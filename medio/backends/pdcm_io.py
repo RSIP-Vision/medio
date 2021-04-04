@@ -95,10 +95,10 @@ class PdcmIO:
         if not slices:
             raise FileNotFoundError(f'No DICOMs in: "{input_dir}"')
 
-        # filter by Series Instance UID and Series Date
+        # filter by Series Instance UID
         datasets = {}
         for slc in slices:
-            series_id = (slc.SeriesInstanceUID, slc.SeriesDate)
+            series_id = slc.SeriesInstanceUID
             datasets[series_id] = datasets.get(series_id, []) + [slc]
         if len(datasets) > 1:
             raise ValueError(f'The directory: "{input_dir}"\n'
