@@ -126,26 +126,22 @@ class PdcmIO:
     @staticmethod
     def reorient(img, metadata, desired_ornt):
         """
-        Reorient img array and affine (in the metadata) to desired_ornt using nibabel.
+        Reorient img array and affine (in the metadata) to desired_ornt (str) using nibabel.
         desired_ornt is in itk convention.
         Note that if img has channels (RGB for example), they must be in last axis
         """
-        if desired_ornt is None:
+        if (desired_ornt is None) or (desired_ornt == metadata.ornt):
             return img, metadata
         # convert from pydicom (itk) to nibabel convention
         metadata.convert(NibIO.coord_sys)
+        orig_ornt = metadata.ornt
         desired_ornt = inv_axcodes(desired_ornt)
         # use nibabel for the reorientation
         img_struct = nib.spatialimages.SpatialImage(img, metadata.affine)
         reoriented_img_struct = NibIO.reorient(img_struct, desired_ornt)
 
-        if reoriented_img_struct is img_struct:
-            # trivial reorientation - the data has not changed
-            metadata.convert(PdcmIO.coord_sys)
-            return img, metadata
-
         img = np.asanyarray(reoriented_img_struct.dataobj)
-        metadata = MetaData(reoriented_img_struct.affine, orig_ornt=metadata.orig_ornt, coord_sys=NibIO.coord_sys,
+        metadata = MetaData(reoriented_img_struct.affine, orig_ornt=orig_ornt, coord_sys=NibIO.coord_sys,
                             header=metadata.header)
         # convert back to pydicom convention
         metadata.convert(PdcmIO.coord_sys)
