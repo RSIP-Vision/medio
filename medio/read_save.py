@@ -4,7 +4,6 @@ from medio.backends.itk_io import ItkIO
 from medio.backends.nib_io import NibIO
 from medio.backends.pdcm_io import PdcmIO
 from medio.metadata.convert_nib_itk import inv_axcodes
-from medio.metadata.metadata import MetaData
 from medio.utils.files import is_nifti
 
 
@@ -26,9 +25,9 @@ def read_img(input_path, desired_ornt=None, backend=None, dtype=None, header=Fal
     None means that the backend will determine coord_sys, but it can lead to a backend-dependent array and metadata
     :return: numpy image and metadata object
     """
-    nib_reader_data = (NibIO.read_img, 'nib')
-    itk_reader_data = (ItkIO.read_img, 'itk')
-    pdcm_reader_data = (PdcmIO.read_img, 'itk')
+    nib_reader_data = (NibIO.read_img, NibIO.coord_sys)
+    itk_reader_data = (ItkIO.read_img, ItkIO.coord_sys)
+    pdcm_reader_data = (PdcmIO.read_img, PdcmIO.coord_sys)
     if backend is None:
         if is_nifti(input_path):
             reader, reader_sys = nib_reader_data

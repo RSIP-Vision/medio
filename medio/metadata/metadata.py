@@ -45,7 +45,7 @@ class MetaData:
 
     def convert(self, dest_coord_sys):
         """
-        Converts the metadata coordinate system inplace to dest_coord_sys. Affects affine, ornt and orig_ornt
+        Converts the metadata coordinate system in-place to dest_coord_sys. Affects affine, ornt and orig_ornt
         :param dest_coord_sys: the destination coordinate system - 'itk' or 'nib' (nifti)
         """
         self.check_valid_coord_sys(dest_coord_sys)

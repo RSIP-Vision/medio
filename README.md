@@ -232,8 +232,8 @@ The MetaData method `metadata.is_right_handed_ornt()` checks for a right handed 
 according to the determinant of the direction matrix (`metadata.affine.direction`). This method can 
 be useful before saving a dicom file or series, which should have a right-handed orientation.
 
-The method `clone` clones the metadata object, `convert` converts the metadata inplace to the given 
-coordinate system.
+The method `clone` clones the metadata object, `convert` converts the metadata in-place to the 
+given coordinate system.
 
 #### Orientation
 The orientation of a 3d image is string of length 3 that is derived from its affine and coordinate 
