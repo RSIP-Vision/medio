@@ -8,8 +8,8 @@ https://badge.fury.io/py/medio)
 
 **Medical images I/O python package**
 
-This package unifies the io engines of itk, nibabel, and pydicom (and dicom-numpy) packages in a 
-simple and comprehensive interface.
+This package unifies the io engines of itk, nibabel, and pydicom (including dicom-numpy) packages 
+in a simple and comprehensive interface.
 
 It includes conversion between the metadata conventions, reorientations, affine matrix computation 
 for itk and pydicom and saving dicom series or file.
@@ -57,7 +57,8 @@ channels_axis=-1, coord_sys='itk', **kwargs)`
 - `input_path`: *path-like*<br>
   Path for the data to be read (str or pathlib.Path object for example). It can be a file or a 
   folder (in the case of a dicom series). It is the only required parameter.
-  If the input path is a folder, it should contain a single dicom series.
+  If the input path is a folder, it should contain a single dicom series. 
+  If there is more than a single series, the optional parameter `series` can help. 
 - Returns: *array, metadata*<br>
   array of type *numpy.ndarray* and metadata of type *medio.MetaData*. The first is a numpy array 
   of the image, and the second is a metadata object of the image (see [MetaData](#metadata) class 
@@ -97,27 +98,37 @@ Optional parameters:
     `itk.ctype('unsigned short') == itk.US`
   - `fallback_only=True`: *bool*<br>
     If True, the pixel type is automatically found and if failed then `pixel_type` is used 
-    (`pixel_type` must be not None in this case).<br>
+    (`pixel_type` must not be None in this case).<br>
     Note: if `itk.imread(input_path)` fails, using `fallback_only=True` will result in a slightly 
-    inferior performance. If you know what is pixel-type of the image, you can set it with 
-    `pixel_type` and use `fallback_only=False`.
+    inferior performance. If you know what is pixel-type of the image beforehand, you can set it 
+    with `pixel_type` and use `fallback_only=False`.
+  - `series=None`: *str, int or None*<br>
+    If `input_path` is a directory that contains multiple dicom series, selecting a specific one is 
+    possible with the `series` argument. It can be the exact series instance UID (str), an int 
+    between 0 and n-1, where n is the number of series in the directory, or None.<br>
+    If `series` is None and there are multiple series in the directory, a detailed error message 
+    is raised.
 
 - 'pydicom' backend
   - `globber='*'`: *str*<br>
-    Relevant for a directory - glob pattern for selecting the series files (all files by default).
+    Relevant for a directory - glob pattern for selecting the series files (all the files in the 
+    directory by default).
   - `allow_default_affine=False`: *bool*<br>
-    Relevant for multiframe dicom file - if True and the dicom miss some physical tags for the 
+    Relevant for a multiframe dicom file - if True and the dicom misses some physical tags for the 
     affine calculation, use a default affine value.
+  - `series=None`: *str, int or None*<br>
+    The counterpart of `series` in itk backend, see the explanation above.
 
 ### save_img
 `medio.save_img(filename, np_image, metadata, use_original_ornt=True, backend=None, dtype=None, 
 channels_axis=None, mkdir=False, parents=False, **kwargs)`
 - `filename`: *path-like*<br>
-  The file to be saved.
+  The file to be saved, including the format suffix.
 - `np_image`: *numpy.ndarray*<br>
   The image array.
 - `metadata`: *medio.MetaData*<br>
-  The corresponding metadata.
+  The corresponding metadata, from `medio.read_img` for example. In the absence of a known 
+  metadata, a default one can be constructed with `medio.MetaData(np.eye(4))`.
 
 Optional parameters:
 - `use_original_ornt`: *bool*<br> 
@@ -137,7 +148,7 @@ Optional parameters:
 'itk' backend optional parameters (`**kwargs`):
 - `allow_dcm_reorient=False`: *bool*<br>
   When saving a dicom file ('.dcm' or '.dicom' suffix) the image orientation should be right-handed.
-  If it is left-handed, the image can be reoriented to a right-handed orientation with setting this 
+  If it is left-handed, the image can be reoriented to a right-handed orientation by setting this 
   parameter to True, which flips the last axis direction.
 - `compression=False`: *bool*<br>
   Whether to use compression in itk writer. Using a '.nii.gz' suffix in `filename` also compresses
@@ -151,16 +162,18 @@ Save a 3d numpy array `np_image` as a dicom series of 2d slices in the directory
 backend).
 
 - `dirname`: *path-like*<br>
-  The directory to save the files in (str or pathlib.Path). If it exists - must be empty.
+  The directory to save the files in (str or pathlib.Path). If it exists, it must be empty (unless 
+  `exist_ok` is True).
 
 The other parameters: `np_image`, `metadata`, `use_original_ornt`, `dtype`, `channels_axis`, 
-`parents` and `allow_dcm_reorient` are equivalent to those used in [save_img](#save_img).
+`parents` and `allow_dcm_reorient` are equivalent to those of [save_img](#save_img).
 
 Additional optional parameters (`**kwargs`):
 - `exist_ok`: *bool*<br>
   If True, non-empty existing directory will not raise an error.
 - `pattern='IM{}.dcm'`: *str*<br>
   Pattern for the filenames to save, including a placeholder ('`{}`') for the slice number.
+  For example, one can use: `pattern={:03d}`.
 - `metadata_dict=None`: *dict or None*<br>
   Dictionary of metadata for adding tags or overriding the default values. For example, 
   `metadata_dict={'0008|0060': 'US'}` will override the default 'CT' modality and set it to 'US' 
@@ -206,16 +219,16 @@ A MetaData object 'metadata' is mainly comprised of:
 - `metadata.coord_sys`: coordinate system ('itk' or 'nib') 
 - `metadata.orig_ornt`: the original orientation of the image (used for saving)
 - `metadata.header`: a dictionary that includes additional metadata properties when `header=True` 
-  in `read_img`
+  in `read_img`, otherwise None
 
 Other properties of the metadata are derived from the affine:
 - `metadata.spacing`: voxels spacing (a reference to `metadata.affine.spacing`) 
-- `metadata.ornt`: the current image orientation (also depends on the coordinate system)
+- `metadata.ornt`: the current image orientation (depends on the coordinate system `coord_sys`)
 
 All these properties can be viewed easily in the console:
 ```python
 >>> import medio
->>> array, metadata = medio.read_img('avg152T1_LR_nifti.nii.gz')
+>>> array, metadata = medio.read_img('avg152T1_LR_nifti.nii.gz', header=False)
 >>> print(metadata)
 Affine:
 [[  -2.    0.    0.   90.]
@@ -246,8 +259,9 @@ For example, 'RAS' orientation in itk:
 'RAS' in nib - also 'RAS+':
 - Left to **R**ight, Posterior to **A**nterior, Inferior to **S**uperior
 
-Note that the conventions are opposite. For stability reasons, we use itk convention 
-by default for `read_img`'s argument `desired_ornt`.
+Note that the conventions are opposite. For stability reasons, we use itk convention by default 
+for `read_img`'s argument `desired_ornt`, although one can choose otherwise with the parameter 
+`coord_sys`.
 
 For further discussion see 
 [NiBabel's image orientation documentation](
