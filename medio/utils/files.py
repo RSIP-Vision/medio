@@ -48,17 +48,17 @@ def make_dir(dir_path, parents=False, exist_ok=False):
 def parse_series_uids(input_dir, series_uids, series=None, globber=None):
     """Receive an input dir, an iterable of series UIDs, and a series (UID string or int),
     return a series uid according to series_uids and series"""
-    num_series = len(series_uids)
+    keys = sorted(series_uids)
+    num_series = len(keys)
     if num_series == 0:
         raise FileNotFoundError(f'No DICOMs in:\n"{input_dir}"' + (
             f'\nwith globber="{globber}"' if globber is not None else ''))
 
     if num_series == 1:
-        return series_uids[0]
+        return keys[0]
 
     # if there is more than a single series
     if num_series > 1:
-        keys = sorted(series_uids)
         if series is None:
             raise ValueError(f'The directory: "{input_dir}"\n'
                              'contains more than a single DICOM series. '
