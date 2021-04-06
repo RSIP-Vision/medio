@@ -233,6 +233,7 @@ class ItkIO:
     def read_dir(dirname, pixel_type=None, fallback_only=False, series=None):
         """
         Read a dicom directory. If there is more than one series in the directory an error is raised
+        (unless the series argument is used properly).
         Shorter option for a single series (provided the slices order is known):
         >>> itk.imread([filename0, filename1, ...])
         """
