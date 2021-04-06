@@ -39,9 +39,8 @@ class PdcmIO:
         input_path = Path(input_path)
         temp_channels_axis = -1  # if there are channels, they must be in the last axis for the reorientation
         if input_path.is_dir():
-            # TODO: add header support
-            img, metadata, channeled = PdcmIO.read_dcm_dir(input_path, globber, channels_axis=temp_channels_axis,
-                                                           series=series)
+            img, metadata, channeled = PdcmIO.read_dcm_dir(input_path, header, globber,
+                                                           channels_axis=temp_channels_axis, series=series)
         else:
             img, metadata, channeled = PdcmIO.read_dcm_file(
                 input_path, header, allow_default_affine=allow_default_affine, channels_axis=temp_channels_axis)
@@ -73,7 +72,7 @@ class PdcmIO:
         return img, metadata, samples_per_pixel > 1
 
     @staticmethod
-    def read_dcm_dir(input_dir, globber='*', channels_axis=None, series=None):
+    def read_dcm_dir(input_dir, header=False, globber='*', channels_axis=None, series=None):
         """
         Reads a 3D dicom image: input path can be a file or directory (DICOM series).
         Return the image array, metadata, and whether it has channels
@@ -82,6 +81,10 @@ class PdcmIO:
         slices = PdcmIO.extract_slices(input_dir, globber=globber, series=series)
         img, affine = combine_slices(slices)
         metadata = PdcmIO.aff2meta(affine)
+        if header:
+            # TODO: add header support, something like
+            #  metdata.header = [{str(key): ds[key] for key in ds.keys()} for ds in slices]
+            raise NotImplementedError("header=True is currently not supported for a series")
         samples_per_pixel = slices[0].SamplesPerPixel
         img = PdcmIO.move_channels_axis(img, samples_per_pixel=samples_per_pixel, channels_axis=channels_axis,
                                         planar_configuration=slices[0].get('PlanarConfiguration', None),
