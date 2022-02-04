@@ -28,8 +28,9 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Image Processing",
     "Topic :: Scientific/Engineering :: Medical Science Apps.",
     "Topic :: Software Development :: Libraries :: Python Modules",
-#    "Typing :: Typed",
+#    "Typing :: Typed",  # TODO: Add typing support
 ]
+exclude = ['**/tests/**']  # TODO: Remove this when tests are moved out of the package
 
 [tool.poetry.dependencies]
 python = "^3.7"
