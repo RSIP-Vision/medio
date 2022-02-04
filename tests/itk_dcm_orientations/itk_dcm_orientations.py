@@ -4,9 +4,10 @@ import itk
 import numpy as np
 import pandas as pd
 
-from medio.tests.itk_dcm_orientations.orientations_utils import (ornt_list, ornt_direction_dict, is_right_handed_ornt,
-                                                                 direction2ornt)
-from medio.tests.itk_dcm_orientations.itk_utils import set_image_direction, get_image_direction
+from tests.itk_dcm_orientations.orientations_utils import (
+    ornt_list, ornt_direction_dict, is_right_handed_ornt, direction2ornt
+)
+from tests.itk_dcm_orientations.itk_utils import set_image_direction, get_image_direction
 
 
 def get_saved_ornt(image, desired_ornt, remove=True):
@@ -31,13 +32,17 @@ arr_rgb = np.random.randint(0, 256, size=(10, 30, 25, 3), dtype='uint8')  # (sli
 img = itk.image_from_array(arr)
 img_rgb = itk.image_from_array(arr_rgb, is_vector=True)
 
-df = pd.DataFrame(columns=['Orientation',
-                           'Right/Left-handed orientation',
-                           'Success',
-                           'Saved orientation',
-                           'RGB success',
-                           'RGB saved orientation'
-                           ])
+df = pd.DataFrame(
+    columns=
+        [
+          'Orientation',
+           'Right/Left-handed orientation',
+           'Success',
+           'Saved orientation',
+           'RGB success',
+           'RGB saved orientation',
+        ]
+)
 
 for ornt in ornt_list:
     state_dict = dict.fromkeys(df.columns)
