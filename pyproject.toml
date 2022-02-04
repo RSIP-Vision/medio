@@ -37,7 +37,10 @@ itk = "^5.1.2"
 nibabel = "^3.2.1"
 pydicom = "^2.1.2"
 dicom-numpy = ">= 0.5.0, < 1"
-numpy = "^1.18.1"
+numpy = [
+    {version = "^1.21.5", python = ">= 3.7, < 3.11"},
+    {version = "^1.22.2", python = "^3.8"},
+]
 
 [tool.poetry.dev-dependencies]
 
