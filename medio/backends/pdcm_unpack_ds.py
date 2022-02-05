@@ -4,7 +4,11 @@ This module is equivalent to dicom_numpy's module: combine_slices.py, but here f
 import logging
 
 import numpy as np
-from dicom_numpy.combine_slices import _validate_image_orientation, _extract_cosines, _requires_rescaling
+from dicom_numpy.combine_slices import (
+    _validate_image_orientation,
+    _extract_cosines,
+    _requires_rescaling,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -81,9 +85,11 @@ def _unpack_pixel_array(dataset, rescale=None):
         rescale = _requires_rescaling(dataset)
 
     if rescale:
-        voxels = voxels.astype('int16', copy=False)  # TODO: it takes time! Consider view.
-        slope = getattr(dataset, 'RescaleSlope', 1)
-        intercept = getattr(dataset, 'RescaleIntercept', 0)
+        voxels = voxels.astype(
+            "int16", copy=False
+        )  # TODO: it takes time! Consider view.
+        slope = getattr(dataset, "RescaleSlope", 1)
+        intercept = getattr(dataset, "RescaleIntercept", 0)
         if int(slope) == slope and int(intercept) == intercept:
             slope = int(slope)
             intercept = int(intercept)
@@ -103,8 +109,9 @@ def _ijk_to_patient_xyz_transform_matrix(dataset):
 
     transform[:3, 0] = row_cosine * column_spacing
     transform[:3, 1] = column_cosine * row_spacing
-    transform[:3, 2] = (np.array(dataset.slice_position(-1)) - dataset.slice_position(0)
-                        ) / (dataset.NumberOfFrames - 1)
+    transform[:3, 2] = (
+        np.array(dataset.slice_position(-1)) - dataset.slice_position(0)
+    ) / (dataset.NumberOfFrames - 1)
     # transform[:3, 2] = slice_cosine * slice_spacing
 
     transform[:3, 3] = dataset.ImagePositionPatient

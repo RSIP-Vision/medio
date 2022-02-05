@@ -14,16 +14,23 @@ from medio.utils.files import parse_series_uids
 
 
 class ItkIO:
-    coord_sys = 'itk'
+    coord_sys = "itk"
     DEFAULT_COMPONENTS_AXIS = 0  # in the transposed image
     # default image type:
     dimension = 3
-    pixel_type = itk.ctype('short')  # signed short - int16
+    pixel_type = itk.ctype("short")  # signed short - int16
     image_type = itk.Image[pixel_type, dimension]
 
     @staticmethod
-    def read_img(input_path, desired_axcodes=None, header=False, components_axis=None, pixel_type=pixel_type,
-                 fallback_only=True, series=None):
+    def read_img(
+        input_path,
+        desired_axcodes=None,
+        header=False,
+        components_axis=None,
+        pixel_type=pixel_type,
+        fallback_only=True,
+        series=None,
+    ):
         """
         The main reader function, reads images and performs reorientation and unpacking
         :param input_path: path of image file or directory containing dicom series
@@ -38,7 +45,9 @@ class ItkIO:
         """
         input_path = Path(input_path)
         if input_path.is_dir():
-            img = ItkIO.read_dir(str(input_path), pixel_type, fallback_only, series=series, header=header)
+            img = ItkIO.read_dir(
+                str(input_path), pixel_type, fallback_only, series=series, header=header
+            )
         elif input_path.is_file():
             img = ItkIO.read_img_file(str(input_path), pixel_type, fallback_only)
         else:
@@ -49,26 +58,43 @@ class ItkIO:
         if (desired_axcodes is None) or (desired_axcodes == metadata.ornt):
             image_np = ItkIO.itk_img_to_array(img)
         else:
-            orig_ornt = metadata.ornt  # store the original orientation before the reorientation
+            orig_ornt = (
+                metadata.ornt
+            )  # store the original orientation before the reorientation
             img, _ = ItkIO.reorient(img, desired_axcodes)
             image_np, affine = ItkIO.unpack_img(img)
-            metadata = MetaData(affine=affine, orig_ornt=orig_ornt, coord_sys=ItkIO.coord_sys)
+            metadata = MetaData(
+                affine=affine, orig_ornt=orig_ornt, coord_sys=ItkIO.coord_sys
+            )
         if header:
             # TODO: not implemented for a series (returns an empty dictionary), see ItkIO.read_dir
             metadict = img.GetMetaDataDictionary()
-            metadata.header = {key: metadict[key] for key in metadict.GetKeys() if not key.startswith('ITK_')}
+            metadata.header = {
+                key: metadict[key]
+                for key in metadict.GetKeys()
+                if not key.startswith("ITK_")
+            }
 
         # TODO: consider unifying with PdcmIO.move_channels_axis
         n_components = img.GetNumberOfComponentsPerPixel()
         if (n_components > 1) and (components_axis is not None):
             # assert image_np.shape[ItkIO.DEFAULT_COMPONENTS_AXIS] == n_components
-            image_np = np.moveaxis(image_np, ItkIO.DEFAULT_COMPONENTS_AXIS, components_axis)
+            image_np = np.moveaxis(
+                image_np, ItkIO.DEFAULT_COMPONENTS_AXIS, components_axis
+            )
 
         return image_np, metadata
 
     @staticmethod
-    def save_img(filename, image_np, metadata, use_original_ornt=True, components_axis=None,
-                 allow_dcm_reorient=False, compression=False):
+    def save_img(
+        filename,
+        image_np,
+        metadata,
+        use_original_ornt=True,
+        components_axis=None,
+        allow_dcm_reorient=False,
+        compression=False,
+    ):
         """
         Save an image file with itk
         :param filename: the filename to save, str or os.PathLike
@@ -82,22 +108,40 @@ class ItkIO:
         """
         is_dcm = is_dicom(filename, check_exist=False)
         if is_dcm:
-            image_np = ItkIO.prepare_dcm_array(image_np, is_vector=components_axis is not None)
-        image = ItkIO.prepare_image(image_np, metadata, use_original_ornt, components_axis=components_axis,
-                                    is_dcm=is_dcm, allow_dcm_reorient=allow_dcm_reorient)
+            image_np = ItkIO.prepare_dcm_array(
+                image_np, is_vector=components_axis is not None
+            )
+        image = ItkIO.prepare_image(
+            image_np,
+            metadata,
+            use_original_ornt,
+            components_axis=components_axis,
+            is_dcm=is_dcm,
+            allow_dcm_reorient=allow_dcm_reorient,
+        )
         ItkIO.save_img_file(image, str(filename), compression=compression)
 
     @staticmethod
-    def prepare_image(image_np, metadata, use_original_ornt, components_axis=None, is_dcm=False,
-                      allow_dcm_reorient=False):
+    def prepare_image(
+        image_np,
+        metadata,
+        use_original_ornt,
+        components_axis=None,
+        is_dcm=False,
+        allow_dcm_reorient=False,
+    ):
         """Prepare image for saving"""
         orig_coord_sys = metadata.coord_sys
         metadata.convert(ItkIO.coord_sys)
         desired_ornt = metadata.orig_ornt if use_original_ornt else None
         if is_dcm:
             # checking right-handed orientation before saving a dicom file/series
-            desired_ornt = check_dcm_ornt(desired_ornt, metadata, allow_dcm_reorient=allow_dcm_reorient)
-        image = ItkIO.pack2img(image_np, metadata.affine, components_axis=components_axis)
+            desired_ornt = check_dcm_ornt(
+                desired_ornt, metadata, allow_dcm_reorient=allow_dcm_reorient
+            )
+        image = ItkIO.pack2img(
+            image_np, metadata.affine, components_axis=components_axis
+        )
         if (desired_ornt is not None) and (desired_ornt != metadata.ornt):
             image, _ = ItkIO.reorient(image, desired_ornt)
         metadata.convert(orig_coord_sys)
@@ -123,11 +167,13 @@ class ItkIO:
             if np.array_equal(arr, image_np):
                 return arr
 
-        raise NotImplementedError('Saving a single dicom file with ItkIO is currently supported only for \n'
-                                  '1. 2d images - int16, uint16, uint8\n'
-                                  '2. 3d images with integer nonnegative values - uint8, uint16\n'
-                                  '3. 2d/3d RGB[A] images - uint8 (with channels_axis)\n'
-                                  'For negative values, try to save a dicom directory or use PdcmIO.save_arr2dcm_file')
+        raise NotImplementedError(
+            "Saving a single dicom file with ItkIO is currently supported only for \n"
+            "1. 2d images - int16, uint16, uint8\n"
+            "2. 3d images with integer nonnegative values - uint8, uint16\n"
+            "3. 2d/3d RGB[A] images - uint8 (with channels_axis)\n"
+            "For negative values, try to save a dicom directory or use PdcmIO.save_arr2dcm_file"
+        )
 
     @staticmethod
     def read_img_file(filename, pixel_type=None, fallback_only=False):
@@ -140,7 +186,7 @@ class ItkIO:
         reader = itk.ImageFileReader[image_type].New()
         reader.SetFileName(filename)
         reader.Update()
-        image_io = str(reader.GetImageIO()).split(' ')[0]
+        image_io = str(reader.GetImageIO()).split(" ")[0]
         image = reader.GetOutput()
         return image, image_io
 
@@ -162,7 +208,9 @@ class ItkIO:
     @staticmethod
     def itk_img_to_array(img_itk):
         """Swap the axes to the usual x, y, z convention in RAI orientation (originally z, y, x)"""
-        img_array = itk.array_from_image(img_itk).T  # the transpose here is equivalent to keep_axes=True
+        img_array = itk.array_from_image(
+            img_itk
+        ).T  # the transpose here is equivalent to keep_axes=True
         return img_array
 
     @staticmethod
@@ -170,9 +218,13 @@ class ItkIO:
         """Set components_axis to not None for vector images, e.g. RGB"""
         is_vector = False
         if components_axis is not None:
-            img_array = np.moveaxis(img_array, components_axis, ItkIO.DEFAULT_COMPONENTS_AXIS)
+            img_array = np.moveaxis(
+                img_array, components_axis, ItkIO.DEFAULT_COMPONENTS_AXIS
+            )
             is_vector = True
-        img_itk = itk.image_from_array(img_array.T.copy(), is_vector=is_vector)  # copy is crucial for the ordering
+        img_itk = itk.image_from_array(
+            img_array.T.copy(), is_vector=is_vector
+        )  # copy is crucial for the ordering
         return img_itk
 
     @staticmethod
@@ -183,7 +235,9 @@ class ItkIO:
 
     @staticmethod
     def get_img_aff(img):
-        direction = itk.array_from_vnl_matrix(img.GetDirection().GetVnlMatrix().as_matrix())
+        direction = itk.array_from_vnl_matrix(
+            img.GetDirection().GetVnlMatrix().as_matrix()
+        )
         spacing = itk.array_from_vnl_vector(img.GetSpacing().GetVnlVector())
         origin = itk.array_from_vnl_vector(img.GetOrigin().GetVnlVector())
         return Affine(direction=direction, spacing=spacing, origin=origin)
@@ -204,12 +258,12 @@ class ItkIO:
 
         # setting metadata
         spacing_vec = itk.Vector[itk.D, dimension]()
-        spacing_vec.SetVnlVector(itk.vnl_vector_from_array(spacing.astype('float')))
+        spacing_vec.SetVnlVector(itk.vnl_vector_from_array(spacing.astype("float")))
         image.SetSpacing(spacing_vec)
 
-        image.SetOrigin(origin.astype('float'))
+        image.SetOrigin(origin.astype("float"))
 
-        direction_mat = itk.vnl_matrix_from_array(direction_arr.astype('float'))
+        direction_mat = itk.vnl_matrix_from_array(direction_arr.astype("float"))
         direction = itk.Matrix[itk.D, dimension, dimension](direction_mat)
         image.SetDirection(direction)
 
@@ -231,7 +285,9 @@ class ItkIO:
         return reoriented_itk_img, original_orientation_code
 
     @staticmethod
-    def read_dir(dirname, pixel_type=None, fallback_only=False, series=None, header=False):
+    def read_dir(
+        dirname, pixel_type=None, fallback_only=False, series=None, header=False
+    ):
         """
         Read a dicom directory. If there is more than one series in the directory an error is raised
         (unless the series argument is used properly).
@@ -245,7 +301,9 @@ class ItkIO:
             #  reader.Update()
             #  metadict_arr = reader.GetMetaDataDictionaryArray()
             #  (See also itk.imread source code)
-            raise NotImplementedError("header=True is currently not supported for a series")
+            raise NotImplementedError(
+                "header=True is currently not supported for a series"
+            )
         return itk.imread(filenames, pixel_type, fallback_only)
 
     @staticmethod
@@ -264,8 +322,17 @@ class ItkIO:
         return filenames
 
     @staticmethod
-    def save_dcm_dir(dirname, image_np, metadata, use_original_ornt=True, components_axis=None, parents=False,
-                     exist_ok=False, allow_dcm_reorient=False, **kwargs):
+    def save_dcm_dir(
+        dirname,
+        image_np,
+        metadata,
+        use_original_ornt=True,
+        components_axis=None,
+        parents=False,
+        exist_ok=False,
+        allow_dcm_reorient=False,
+        **kwargs,
+    ):
         """
         Save a 3d numpy array image_np as a dicom series of 2d dicom slices in the directory dirname
         :param dirname: the directory to save in the files, str or pathlib.Path. If it exists - must be empty
@@ -279,8 +346,14 @@ class ItkIO:
         :param allow_dcm_reorient: whether to allow automatic reorientation to a right-handed orientation or not
         :param kwargs: optional kwargs passed to ItkIO.dcm_metadata: pattern, metadata_dict
         """
-        image = ItkIO.prepare_image(image_np, metadata, use_original_ornt, components_axis=components_axis,
-                                    is_dcm=True, allow_dcm_reorient=allow_dcm_reorient)
+        image = ItkIO.prepare_image(
+            image_np,
+            metadata,
+            use_original_ornt,
+            components_axis=components_axis,
+            is_dcm=True,
+            allow_dcm_reorient=allow_dcm_reorient,
+        )
         image_type = type(image)
         _, (pixel_type, _) = itk.template(image)
         image2d_type = itk.Image[pixel_type, 2]
@@ -298,7 +371,7 @@ class ItkIO:
         writer.Update()
 
     @staticmethod
-    def dcm_series_metadata(image, dirname, pattern='IM{}.dcm', metadata_dict=None):
+    def dcm_series_metadata(image, dirname, pattern="IM{}.dcm", metadata_dict=None):
         """
         Return dicom series metadata per slice and filenames
         :param image: the full itk image to be saved as dicom series
@@ -315,40 +388,45 @@ class ItkIO:
         mdict = itk.MetaDataDictionary()
 
         # Series Instance UID
-        mdict['0020|000e'] = generate_uid()
+        mdict["0020|000e"] = generate_uid()
         # Study Instance UID
-        mdict['0020|000d'] = generate_uid()
+        mdict["0020|000d"] = generate_uid()
 
-        date, time = datetime.now().strftime('%Y%m%d %H%M%S.%f').split()
+        date, time = datetime.now().strftime("%Y%m%d %H%M%S.%f").split()
         # Study Date
-        mdict['0008|0020'] = date
+        mdict["0008|0020"] = date
         # Series Date
-        mdict['0008|0021'] = date
+        mdict["0008|0021"] = date
         # Content Date
-        mdict['0008|0023'] = date
+        mdict["0008|0023"] = date
         # Study Time
-        mdict['0008|0030'] = time
+        mdict["0008|0030"] = time
         # Series Time
-        mdict['0008|0031'] = time
+        mdict["0008|0031"] = time
 
         # Pixel Spacing (not necessary - automatically saved)
         spacing = image.GetSpacing()
-        mdict['0028|0030'] = f'{spacing[0]}\\{spacing[1]}'
+        mdict["0028|0030"] = f"{spacing[0]}\\{spacing[1]}"
         # Spacing Between Slices
-        mdict['0018|0088'] = str(spacing[2])
+        mdict["0018|0088"] = str(spacing[2])
         # Image Orientation (Patient)
-        orientation_str = '\\'.join([str(image.GetDirection().GetVnlMatrix().get(i, j))
-                                     for j in range(2) for i in range(3)])
-        mdict['0020|0037'] = orientation_str
+        orientation_str = "\\".join(
+            [
+                str(image.GetDirection().GetVnlMatrix().get(i, j))
+                for j in range(2)
+                for i in range(3)
+            ]
+        )
+        mdict["0020|0037"] = orientation_str
         # Patient Position
-        mdict['0018|5100'] = ''
+        mdict["0018|5100"] = ""
 
         # Number of Frames
-        mdict['0028|0008'] = '1'
+        mdict["0028|0008"] = "1"
         # Number of Slices
-        mdict['0054|0081'] = str(n)
+        mdict["0054|0081"] = str(n)
         # Modality
-        mdict['0008|0060'] = 'CT'
+        mdict["0008|0060"] = "CT"
 
         if metadata_dict is not None:
             for key, val in metadata_dict.items():
@@ -362,11 +440,11 @@ class ItkIO:
             # copy the shared properties dict:
             mdict_i = itk.MetaDataDictionary(mdict)
             # Instance Number
-            mdict_i['0020|0013'] = str(i + 1)
+            mdict_i["0020|0013"] = str(i + 1)
             # Image Position (Patient)
             position = image.TransformIndexToPhysicalPoint([0, 0, i])
-            position_str = '\\'.join([str(position[i]) for i in range(3)])
-            mdict_i['0020|0032'] = position_str
+            position_str = "\\".join([str(position[i]) for i in range(3)])
+            mdict_i["0020|0032"] = position_str
 
             mdict_list += [mdict_i]
             filenames += [str(Path(dirname) / pattern.format(i + 1))]

@@ -32,22 +32,25 @@ class ItkOrientationCode:
 def itk_orientation_code(ax_code):
     """ax_code is string or tuple of valid orientation, e.g. 'LPI', ('A', 'R', 'S')"""
     prime, second, tertiary = [getattr(AxCodes, axis) for axis in ax_code]
-    return (prime << AxMajorness.Primary) + (second << AxMajorness.Secondary) + (tertiary << AxMajorness.Tertiary)
+    return (
+        (prime << AxMajorness.Primary)
+        + (second << AxMajorness.Secondary)
+        + (tertiary << AxMajorness.Tertiary)
+    )
 
 
 # adding all 48 possible orientation codes to ItkOrientationCode class
 
 ax_codes_iter = itertools.chain(
-    *map(itertools.permutations,
-         itertools.product(('R', 'L'), ('A', 'P'), ('I', 'S'))
-         ))
+    *map(itertools.permutations, itertools.product(("R", "L"), ("A", "P"), ("I", "S")))
+)
 
 # two way dictionary that translates itk numerical orientation codes to orientation strings and vice versa
 codes_str_dict = TwoWayDict()
 codes_str_dict[None] = None
 
 for ax_code in ax_codes_iter:
-    ax_code_str = ''.join(ax_code)
+    ax_code_str = "".join(ax_code)
     code = itk_orientation_code(ax_code)
     setattr(ItkOrientationCode, ax_code_str, code)
     codes_str_dict[ax_code_str] = code
