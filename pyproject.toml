@@ -1,0 +1,51 @@
+[tool.poetry]
+name = "medio"
+version = "0.4.1"
+description = "Medical images I/O Python package"
+authors = [
+    "RSIP Vision <info@rsipvision.com>",
+    "Jonathan Daniel <jonathand655@gmail.com>",
+]
+license = "Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/RSIP-Vision/medio"
+keywords = ["medical-images", "IO", "itk", "nibabel", "pydicom"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Intended Audience :: Healthcare Industry",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Image Processing",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+#    "Typing :: Typed",  # TODO: Add typing support
+]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+itk = "^5.1.2"
+nibabel = "^3.2.1"
+pydicom = "^2.1.2"
+dicom-numpy = ">= 0.5.0, < 1"
+numpy = [
+    {version = "^1.21.5", python = ">= 3.7, < 3.11"},
+    {version = "^1.22.2", python = "^3.8"},
+]
+
+[tool.poetry.dev-dependencies]
+
+[tool.poetry.urls]
+"Bug Tracker" = "https://github.com/RSIP-Vision/medio/issues"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
