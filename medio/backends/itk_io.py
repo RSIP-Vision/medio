@@ -23,7 +23,7 @@ class ItkIO:
 
     @staticmethod
     def read_img(input_path, desired_axcodes=None, header=False, components_axis=None, pixel_type=pixel_type,
-                 fallback_only=True, series=None):
+                 fallback_only=True, series=None, private_tags=False):
         """
         The main reader function, reads images and performs reorientation and unpacking
         :param input_path: path of image file or directory containing dicom series
@@ -36,11 +36,18 @@ class ItkIO:
         :return: numpy image and metadata object which includes pixdim, affine, original orientation string and
         coordinates system
         """
+        if private_tags:
+            imageio = itk.GDCMImageIO.New()
+            imageio.LoadPrivateTagsOn()
+            # we need to set the imageio to the reader, but with fallback_only=True it will not set it unless it fails
+            fallback_only = False
+        else:
+            imageio = None
         input_path = Path(input_path)
         if input_path.is_dir():
             img = ItkIO.read_dir(str(input_path), pixel_type, fallback_only, series=series, header=header)
         elif input_path.is_file():
-            img = ItkIO.read_img_file(str(input_path), pixel_type, fallback_only)
+            img = ItkIO.read_img_file(str(input_path), pixel_type, fallback_only, imageio)
         else:
             raise FileNotFoundError(f'No such file or directory: "{input_path}"')
 
@@ -130,14 +137,15 @@ class ItkIO:
                                   'For negative values, try to save a dicom directory or use PdcmIO.save_arr2dcm_file')
 
     @staticmethod
-    def read_img_file(filename, pixel_type=None, fallback_only=False):
+    def read_img_file(filename, pixel_type=None, fallback_only=False, imageio=None):
         """Common pixel types: itk.SS (int16), itk.US (uint16), itk.UC (uint8)"""
-        return itk.imread(filename, pixel_type, fallback_only)
+        return itk.imread(filename, pixel_type, fallback_only, imageio)
 
     @staticmethod
     def read_img_file_long(filename, image_type=image_type):
         """Longer version of itk.imread that returns the itk image and io engine string"""
         reader = itk.ImageFileReader[image_type].New()
+        reader.LoadPrivateTagsOn()
         reader.SetFileName(filename)
         reader.Update()
         image_io = str(reader.GetImageIO()).split(' ')[0]
