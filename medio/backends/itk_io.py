@@ -36,16 +36,17 @@ class ItkIO:
         :return: numpy image and metadata object which includes pixdim, affine, original orientation string and
         coordinates system
         """
-        if private_tags:
+        if header:
             imageio = itk.GDCMImageIO.New()
-            imageio.LoadPrivateTagsOn()
+            if private_tags:
+                imageio.LoadPrivateTagsOn()
             # we need to set the imageio to the reader, but with fallback_only=True it will not set it unless it fails
             fallback_only = False
         else:
             imageio = None
         input_path = Path(input_path)
         if input_path.is_dir():
-            img = ItkIO.read_dir(str(input_path), pixel_type, fallback_only, series=series, header=header)
+            img = ItkIO.read_dir(str(input_path), pixel_type, fallback_only, series, imageio)
         elif input_path.is_file():
             img = ItkIO.read_img_file(str(input_path), pixel_type, fallback_only, imageio)
         else:
@@ -61,8 +62,7 @@ class ItkIO:
             image_np, affine = ItkIO.unpack_img(img)
             metadata = MetaData(affine=affine, orig_ornt=orig_ornt, coord_sys=ItkIO.coord_sys)
         if header:
-            # TODO: not implemented for a series (returns an empty dictionary), see ItkIO.read_dir
-            metadict = img.GetMetaDataDictionary()
+            metadict = imageio.GetMetaDataDictionary()
             metadata.header = {key: metadict[key] for key in metadict.GetKeys() if not key.startswith('ITK_')}
 
         # TODO: consider unifying with PdcmIO.move_channels_axis
@@ -239,7 +239,7 @@ class ItkIO:
         return reoriented_itk_img, original_orientation_code
 
     @staticmethod
-    def read_dir(dirname, pixel_type=None, fallback_only=False, series=None, header=False):
+    def read_dir(dirname, pixel_type=None, fallback_only=False, series=None, imageio=None):
         """
         Read a dicom directory. If there is more than one series in the directory an error is raised
         (unless the series argument is used properly).
@@ -247,14 +247,7 @@ class ItkIO:
         >>> itk.imread([filename0, filename1, ...])
         """
         filenames = ItkIO.extract_series(dirname, series)
-        if header and isinstance(filenames, (tuple, list)):
-            # TODO: to extract the metadata dictionary array use:
-            #  reader = itk.ImageSeriesReader.New(FileNames=filenames)
-            #  reader.Update()
-            #  metadict_arr = reader.GetMetaDataDictionaryArray()
-            #  (See also itk.imread source code)
-            raise NotImplementedError("header=True is currently not supported for a series")
-        return itk.imread(filenames, pixel_type, fallback_only)
+        return itk.imread(filenames, pixel_type, fallback_only, imageio)
 
     @staticmethod
     def extract_series(dirname, series=None):
