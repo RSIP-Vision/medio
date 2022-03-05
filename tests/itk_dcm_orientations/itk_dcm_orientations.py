@@ -33,12 +33,10 @@ def get_saved_ornt(image, desired_ornt, remove=True):
     return saved_ornt, is_equal
 
 
-arr = np.random.randint(
-    0, 256, size=(10, 30, 25), dtype="uint8"
-)  # (slices, cols, rows)
-arr_rgb = np.random.randint(
-    0, 256, size=(10, 30, 25, 3), dtype="uint8"
-)  # (slices, cols, rows, channels)
+# (slices, cols, rows)
+arr = np.random.randint(0, 256, size=(10, 30, 25), dtype="uint8")
+# (slices, cols, rows, channels)
+arr_rgb = np.random.randint(0, 256, size=(10, 30, 25, 3), dtype="uint8")
 img = itk.image_from_array(arr)
 img_rgb = itk.image_from_array(arr_rgb, is_vector=True)
 

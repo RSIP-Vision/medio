@@ -74,9 +74,8 @@ class Affine(np.ndarray):
     def spacing(self, value):
         value = np.asarray(value)
         self._m_matrix = self._m_matrix @ np.diag(value / self._spacing)
-        self._spacing = np.abs(
-            value
-        )  # the spacing must be positive (or at least nonnegative)
+        # the spacing must be positive (or at least nonnegative)
+        self._spacing = np.abs(value)
 
     @property
     def direction(self):

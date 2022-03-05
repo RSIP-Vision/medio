@@ -44,9 +44,8 @@ class PdcmIO:
         :return: numpy array and metadata
         """
         input_path = Path(input_path)
-        temp_channels_axis = (
-            -1
-        )  # if there are channels, they must be in the last axis for the reorientation
+        # if there are channels, they must be in the last axis for the reorientation
+        temp_channels_axis = -1
         if input_path.is_dir():
             img, metadata, channeled = PdcmIO.read_dcm_dir(
                 input_path,

@@ -205,10 +205,12 @@ class ItkIO:
 
     @staticmethod
     def itk_img_to_array(img_itk):
-        """Swap the axes to the usual x, y, z convention in RAI orientation (originally z, y, x)"""
-        img_array = itk.array_from_image(
-            img_itk
-        ).T  # the transpose here is equivalent to keep_axes=True
+        """
+        Swap the axes to the usual x, y, z convention in RAI orientation
+        (originally z, y, x)
+        """
+        # the transpose here is equivalent to keep_axes=True
+        img_array = itk.array_from_image(img_itk).T
         return img_array
 
     @staticmethod
@@ -220,9 +222,8 @@ class ItkIO:
                 img_array, components_axis, ItkIO.DEFAULT_COMPONENTS_AXIS
             )
             is_vector = True
-        img_itk = itk.image_from_array(
-            img_array.T.copy(), is_vector=is_vector
-        )  # copy is crucial for the ordering
+        # copy is crucial for the ordering
+        img_itk = itk.image_from_array(img_array.T.copy(), is_vector=is_vector)
         return img_itk
 
     @staticmethod
