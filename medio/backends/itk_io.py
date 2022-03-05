@@ -58,9 +58,7 @@ class ItkIO:
         if (desired_axcodes is None) or (desired_axcodes == metadata.ornt):
             image_np = ItkIO.itk_img_to_array(img)
         else:
-            orig_ornt = (
-                metadata.ornt
-            )  # store the original orientation before the reorientation
+            orig_ornt = metadata.ornt
             img, _ = ItkIO.reorient(img, desired_axcodes)
             image_np, affine = ItkIO.unpack_img(img)
             metadata = MetaData(
