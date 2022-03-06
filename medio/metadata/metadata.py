@@ -9,7 +9,7 @@ from medio.metadata.convert_nib_itk import convert_nib_itk, inv_axcodes, convert
 
 
 class MetaData:
-    def __init__(self, affine, orig_ornt=None, coord_sys='itk', header=None):
+    def __init__(self, affine, orig_ornt=None, coord_sys="itk", header=None):
         """
         Initialize medical image's metadata
         :param affine: affine matrix of class Affine, numpy float array of shape (4, 4)
@@ -29,19 +29,21 @@ class MetaData:
 
     @staticmethod
     def check_valid_coord_sys(coord_sys):
-        if coord_sys not in ('itk', 'nib'):
+        if coord_sys not in ("itk", "nib"):
             raise ValueError('Metadata coord_sys must be "itk" or "nib"')
 
     def __repr__(self):
-        sep = ' ' if self.header is None else '\n'
-        return (f'Affine:\n'
-                f'{self.affine}\n'
-                f'Spacing: {self.spacing}\n'
-                f'Coordinate system: {self.coord_sys}\n'
-                f'Orientation: {self.ornt}\n'
-                f'Original orientation: {self.orig_ornt}\n'
-                f'Header:{sep}'
-                f'{pprint.pformat(self.header, indent=4)}')
+        sep = " " if self.header is None else "\n"
+        return (
+            f"Affine:\n"
+            f"{self.affine}\n"
+            f"Spacing: {self.spacing}\n"
+            f"Coordinate system: {self.coord_sys}\n"
+            f"Orientation: {self.ornt}\n"
+            f"Original orientation: {self.orig_ornt}\n"
+            f"Header:{sep}"
+            f"{pprint.pformat(self.header, indent=4)}"
+        )
 
     def convert(self, dest_coord_sys):
         """
@@ -50,22 +52,28 @@ class MetaData:
         """
         self.check_valid_coord_sys(dest_coord_sys)
         if dest_coord_sys != self.coord_sys:
-            self.affine, self._ornt, self.orig_ornt = convert_nib_itk(self.affine, self._ornt, self.orig_ornt)
+            self.affine, self._ornt, self.orig_ornt = convert_nib_itk(
+                self.affine, self._ornt, self.orig_ornt
+            )
             self.coord_sys = dest_coord_sys
 
     def clone(self):
-        return MetaData(affine=self.affine.clone(), orig_ornt=self.orig_ornt, coord_sys=self.coord_sys,
-                        header=deepcopy(self.header))
+        return MetaData(
+            affine=self.affine.clone(),
+            orig_ornt=self.orig_ornt,
+            coord_sys=self.coord_sys,
+            header=deepcopy(self.header),
+        )
 
     def get_ornt(self):
         """Returns current orientation based on the affine and coordinate system"""
-        if self.coord_sys == 'nib':
+        if self.coord_sys == "nib":
             ornt_tup = aff2axcodes(self.affine)
-        elif self.coord_sys == 'itk':
+        elif self.coord_sys == "itk":
             ornt_tup = inv_axcodes(aff2axcodes(convert_affine(self.affine)))
         else:
             raise ValueError(f'Invalid coord_sys: "{self.coord_sys}"')
-        ornt_str = ''.join(ornt_tup)
+        ornt_str = "".join(ornt_tup)
         return ornt_str
 
     @property
@@ -87,7 +95,7 @@ class MetaData:
         +1 (-1) indicates right (left) handed orientation.
         To be used primarily before saving a dicom file or series"""
         if self.affine.dim != 3:
-            raise ValueError('Right handed orientation is relevant only to a 3d space')
+            raise ValueError("Right handed orientation is relevant only to a 3d space")
         return np.linalg.det(self.affine.direction) > 0
 
 
@@ -96,13 +104,14 @@ def is_right_handed_axcodes(axcodes):
         return True
     if len(axcodes) != 3:
         raise ValueError(f'Invalid axcodes (not length 3 or 2): "{axcodes}"')
-    letter_vec_dict = {'R': [1, 0, 0],
-                       'L': [-1, 0, 0],
-                       'A': [0, 1, 0],
-                       'P': [0, -1, 0],
-                       'I': [0, 0, 1],
-                       'S': [0, 0, -1]
-                       }
+    letter_vec_dict = {
+        "R": [1, 0, 0],
+        "L": [-1, 0, 0],
+        "A": [0, 1, 0],
+        "P": [0, -1, 0],
+        "I": [0, 0, 1],
+        "S": [0, 0, -1],
+    }
     u, v, n = [letter_vec_dict[letter] for letter in axcodes]
     ornt_sign = np.dot(np.cross(u, v), n)
     if ornt_sign not in (-1, 1):
@@ -131,7 +140,9 @@ def check_dcm_ornt(desired_ornt, metadata, allow_dcm_reorient=False):
         if allow_dcm_reorient:
             return right_handed_ornt
         else:
-            raise ValueError(f'The desired orientation "{desired_ornt}" is left handed, whereas saving dicom is '
-                             f'possible only with a right handed orientation. \nYou can either pass the saver '
-                             f'parameter allow_dcm_reorient=True to allow automatic reorientation (in this case to '
-                             f'"{right_handed_ornt}"), or \nreorient yourself before saving the image as a dicom.')
+            raise ValueError(
+                f'The desired orientation "{desired_ornt}" is left handed, whereas saving dicom is '
+                f"possible only with a right handed orientation. \nYou can either pass the saver "
+                f"parameter allow_dcm_reorient=True to allow automatic reorientation (in this case to "
+                f'"{right_handed_ornt}"), or \nreorient yourself before saving the image as a dicom.'
+            )

@@ -8,14 +8,11 @@ from medio.metadata.metadata import MetaData
 
 
 class NibIO:
-    coord_sys = 'nib'
-    RGB_DTYPE = np.dtype([('R', np.uint8),
-                          ('G', np.uint8),
-                          ('B', np.uint8)])
-    RGBA_DTYPE = np.dtype([('R', np.uint8),
-                           ('G', np.uint8),
-                           ('B', np.uint8),
-                           ('A', np.uint8)])
+    coord_sys = "nib"
+    RGB_DTYPE = np.dtype([("R", np.uint8), ("G", np.uint8), ("B", np.uint8)])
+    RGBA_DTYPE = np.dtype(
+        [("R", np.uint8), ("G", np.uint8), ("B", np.uint8), ("A", np.uint8)]
+    )
 
     @staticmethod
     def read_img(input_path, desired_axcodes=None, header=False, channels_axis=None):
@@ -28,16 +25,20 @@ class NibIO:
         :return: image array and corresponding metadata
         """
         img_struct = nib.load(input_path)
-        orig_ornt_str = ''.join(nib.aff2axcodes(img_struct.affine))
+        orig_ornt_str = "".join(nib.aff2axcodes(img_struct.affine))
         if desired_axcodes is not None:
             img_struct = NibIO.reorient(img_struct, desired_axcodes)
         img = np.asanyarray(img_struct.dataobj)
         if channels_axis is not None:
             img = NibIO.unravel_array(img, channels_axis)
         affine = Affine(img_struct.affine)
-        metadata = MetaData(affine=affine, orig_ornt=orig_ornt_str, coord_sys=NibIO.coord_sys)
+        metadata = MetaData(
+            affine=affine, orig_ornt=orig_ornt_str, coord_sys=NibIO.coord_sys
+        )
         if header:
-            metadata.header = {key: img_struct.header[key] for key in img_struct.header.keys()}
+            metadata.header = {
+                key: img_struct.header[key] for key in img_struct.header.keys()
+            }
         return img, metadata
 
     @staticmethod
@@ -79,7 +80,7 @@ class NibIO:
         np.dtype([('R', 'uint8'), ('G', 'uint8'), ('B', 'uint8')])
         Convert it into an array with dtype 'uint8' and 3 channels for RGB in an additional last dimension"""
         dtype = array.dtype
-        if not (hasattr(dtype, '__len__') and len(dtype) > 1):
+        if not (hasattr(dtype, "__len__") and len(dtype) > 1):
             return array
         return np.stack([array[field] for field in dtype.fields], axis=channels_axis)
 
@@ -87,22 +88,26 @@ class NibIO:
     def pack_channeled_img(img, channels_axis):
         dtype = img.dtype
         if not np.issubdtype(dtype, np.uint8):
-            raise ValueError(f'RGB or RGBA images must have dtype "np.uint8", got: "{dtype}"')
+            raise ValueError(
+                f'RGB or RGBA images must have dtype "np.uint8", got: "{dtype}"'
+            )
         n_channels = img.shape[channels_axis]
         img = np.moveaxis(img, channels_axis, -1)
         r_channel = img[..., 0]
         if n_channels == 3:
             img_rgb = np.empty_like(r_channel, dtype=NibIO.RGB_DTYPE)
-            img_rgb['R'] = r_channel
-            img_rgb['G'] = img[..., 1]
-            img_rgb['B'] = img[..., 2]
+            img_rgb["R"] = r_channel
+            img_rgb["G"] = img[..., 1]
+            img_rgb["B"] = img[..., 2]
             return img_rgb
         elif n_channels == 4:
             img_rgba = np.empty_like(r_channel, dtype=NibIO.RGBA_DTYPE)
-            img_rgba['R'] = r_channel
-            img_rgba['G'] = img[..., 1]
-            img_rgba['B'] = img[..., 2]
-            img_rgba['A'] = img[..., 3]
+            img_rgba["R"] = r_channel
+            img_rgba["G"] = img[..., 1]
+            img_rgba["B"] = img[..., 2]
+            img_rgba["A"] = img[..., 3]
             return img_rgba
         else:
-            raise ValueError(f'Invalid number of channels: {n_channels}, should be 3 (RGB) or 4 (RGBA)')
+            raise ValueError(
+                f"Invalid number of channels: {n_channels}, should be 3 (RGB) or 4 (RGBA)"
+            )
