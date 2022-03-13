@@ -35,16 +35,16 @@ from medio.utils.two_way_dict import TwoWayDict
 
 # store compactly axis directions codes
 axes_inv = TwoWayDict()
-axes_inv['R'] = 'L'
-axes_inv['A'] = 'P'
-axes_inv['S'] = 'I'
+axes_inv["R"] = "L"
+axes_inv["A"] = "P"
+axes_inv["S"] = "I"
 
 
 def inv_axcodes(axcodes):
     """Inverse axes codes chars, for example: SPL -> IAR"""
     if axcodes is None:
         return None
-    new_axcodes = ''
+    new_axcodes = ""
     for code in axcodes:
         new_axcodes += axes_inv[code]
     return new_axcodes

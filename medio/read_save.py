@@ -7,8 +7,16 @@ from medio.metadata.convert_nib_itk import inv_axcodes
 from medio.utils.files import is_nifti
 
 
-def read_img(input_path, desired_ornt=None, backend=None, dtype=None, header=False, channels_axis=-1,
-             coord_sys='itk', **kwargs):
+def read_img(
+    input_path,
+    desired_ornt=None,
+    backend=None,
+    dtype=None,
+    header=False,
+    channels_axis=-1,
+    coord_sys="itk",
+    **kwargs
+):
     """
     Read medical image with nibabel or itk
     :param input_path: str or os.PathLike, the input path of image file or a directory containing dicom series
@@ -34,19 +42,23 @@ def read_img(input_path, desired_ornt=None, backend=None, dtype=None, header=Fal
         else:
             reader, reader_sys = itk_reader_data
     else:
-        if backend == 'nib':
+        if backend == "nib":
             reader, reader_sys = nib_reader_data
-        elif backend == 'itk':
+        elif backend == "itk":
             reader, reader_sys = itk_reader_data
-        elif backend in ('pdcm', 'pydicom'):
+        elif backend in ("pdcm", "pydicom"):
             reader, reader_sys = pdcm_reader_data
         else:
-            raise ValueError('The backend argument must be one of: "itk", "nib", "pdcm" (or "pydicom"), None')
+            raise ValueError(
+                'The backend argument must be one of: "itk", "nib", "pdcm" (or "pydicom"), None'
+            )
 
     if (coord_sys is not None) and (coord_sys != reader_sys):
         desired_ornt = inv_axcodes(desired_ornt)
 
-    np_image, metadata = reader(input_path, desired_ornt, header, channels_axis, **kwargs)
+    np_image, metadata = reader(
+        input_path, desired_ornt, header, channels_axis, **kwargs
+    )
 
     if dtype is not None:
         np_image = np_image.astype(dtype, copy=False)
@@ -55,8 +67,18 @@ def read_img(input_path, desired_ornt=None, backend=None, dtype=None, header=Fal
     return np_image, metadata
 
 
-def save_img(filename, np_image, metadata, use_original_ornt=True, backend=None, dtype=None, channels_axis=None,
-             mkdir=False, parents=False, **kwargs):
+def save_img(
+    filename,
+    np_image,
+    metadata,
+    use_original_ornt=True,
+    backend=None,
+    dtype=None,
+    channels_axis=None,
+    mkdir=False,
+    parents=False,
+    **kwargs
+):
     """
     Save numpy image with corresponding metadata to file
     :param filename: str or os.PathLike, the output filename
@@ -77,9 +99,9 @@ def save_img(filename, np_image, metadata, use_original_ornt=True, backend=None,
         else:
             writer = itk_writer
     else:
-        if backend == 'nib':
+        if backend == "nib":
             writer = nib_writer
-        elif backend == 'itk':
+        elif backend == "itk":
             writer = itk_writer
         else:
             raise ValueError('The backend argument must be one of: "itk", "nib", None')
@@ -90,13 +112,32 @@ def save_img(filename, np_image, metadata, use_original_ornt=True, backend=None,
     writer(filename, np_image, metadata, use_original_ornt, channels_axis, **kwargs)
 
 
-def save_dir(dirname, np_image, metadata, use_original_ornt=True, dtype=None, channels_axis=None, parents=False,
-             exist_ok=False, allow_dcm_reorient=False, **kwargs):
+def save_dir(
+    dirname,
+    np_image,
+    metadata,
+    use_original_ornt=True,
+    dtype=None,
+    channels_axis=None,
+    parents=False,
+    exist_ok=False,
+    allow_dcm_reorient=False,
+    **kwargs
+):
     """
     Save image as a dicom directory. See medio.backends.itk_io.ItkIO.save_dcm_dir documentation.
     dtype is equivalent to passing image_np.astype(dtype) if dtype is not None
     """
     if dtype is not None:
         np_image = np_image.astype(dtype, copy=False)
-    ItkIO.save_dcm_dir(dirname, np_image, metadata, use_original_ornt, channels_axis, parents, exist_ok,
-                       allow_dcm_reorient, **kwargs)
+    ItkIO.save_dcm_dir(
+        dirname,
+        np_image,
+        metadata,
+        use_original_ornt,
+        channels_axis,
+        parents,
+        exist_ok,
+        allow_dcm_reorient,
+        **kwargs
+    )

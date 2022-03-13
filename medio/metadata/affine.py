@@ -33,7 +33,7 @@ class Affine(np.ndarray):
             affine = cls.construct_affine(direction, spacing, origin)
         obj = np.asarray(affine).view(cls)  # return array view of type Affine
         return obj
-    
+
     def __init__(self, affine=None, *, direction=None, spacing=None, origin=None):
         self.dim = self.shape[0] - 1
         if affine is None:
@@ -74,7 +74,8 @@ class Affine(np.ndarray):
     def spacing(self, value):
         value = np.asarray(value)
         self._m_matrix = self._m_matrix @ np.diag(value / self._spacing)
-        self._spacing = np.abs(value)  # the spacing must be positive (or at least nonnegative)
+        # the spacing must be positive (or at least nonnegative)
+        self._spacing = np.abs(value)
 
     @property
     def direction(self):
@@ -124,4 +125,8 @@ class Affine(np.ndarray):
     def affine2comps(affine, spacing=None):
         if spacing is None:
             spacing = Affine.affine2spacing(affine)
-        return Affine.affine2direction(affine, spacing), spacing, Affine.affine2origin(affine)
+        return (
+            Affine.affine2direction(affine, spacing),
+            spacing,
+            Affine.affine2origin(affine),
+        )

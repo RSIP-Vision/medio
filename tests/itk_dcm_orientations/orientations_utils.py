@@ -2,13 +2,14 @@ import itertools
 
 import numpy as np
 
-letter_vec_dict = {'R': [1, 0, 0],
-                   'L': [-1, 0, 0],
-                   'A': [0, 1, 0],
-                   'P': [0, -1, 0],
-                   'I': [0, 0, 1],
-                   'S': [0, 0, -1]
-                   }
+letter_vec_dict = {
+    "R": [1, 0, 0],
+    "L": [-1, 0, 0],
+    "A": [0, 1, 0],
+    "P": [0, -1, 0],
+    "I": [0, 0, 1],
+    "S": [0, 0, -1],
+}
 
 
 def ornt2direction(ornt):
@@ -16,16 +17,15 @@ def ornt2direction(ornt):
 
 
 ornt_iter = itertools.chain(
-    *map(itertools.permutations,
-         itertools.product(('R', 'L'), ('A', 'P'), ('I', 'S'))
-         ))
+    *map(itertools.permutations, itertools.product(("R", "L"), ("A", "P"), ("I", "S")))
+)
 
 # dictionary that translates itk orientation codes to direction matrices
 ornt_direction_dict = dict()
 ornt_list = []
 
 for ornt_tup in ornt_iter:
-    ornt = ''.join(ornt_tup)
+    ornt = "".join(ornt_tup)
     ornt_list += [ornt]
     ornt_direction_dict[ornt] = ornt2direction(ornt)
 
@@ -41,4 +41,4 @@ def direction2ornt(direction):
     for key, val in ornt_direction_dict.items():
         if np.array_equal(direction, val):
             return key
-    raise ValueError('Invalid direction')
+    raise ValueError("Invalid direction")

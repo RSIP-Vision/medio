@@ -14,15 +14,22 @@ from medio.utils.files import parse_series_uids
 
 
 class PdcmIO:
-    coord_sys = 'itk'
+    coord_sys = "itk"
     # channels axes in the transposed image for pydicom and dicom-numpy. The actual axis is the first or the second
     # value of the tuple, according to the planar configuration (which is either 0 or 1)
     DEFAULT_CHANNELS_AXES_PYDICOM = (0, -1)
     DEFAULT_CHANNELS_AXES_DICOM_NUMPY = (0, 2)
 
     @staticmethod
-    def read_img(input_path, desired_ornt=None, header=False, channels_axis=None, globber='*',
-                 allow_default_affine=False, series=None):
+    def read_img(
+        input_path,
+        desired_ornt=None,
+        header=False,
+        channels_axis=None,
+        globber="*",
+        allow_default_affine=False,
+        series=None,
+    ):
         """
         Read a dicom file or folder (series) and return the numpy array and the corresponding metadata
         :param input_path: path-like object (str or pathlib.Path) of the file or directory to read
@@ -37,13 +44,23 @@ class PdcmIO:
         :return: numpy array and metadata
         """
         input_path = Path(input_path)
-        temp_channels_axis = -1  # if there are channels, they must be in the last axis for the reorientation
+        # if there are channels, they must be in the last axis for the reorientation
+        temp_channels_axis = -1
         if input_path.is_dir():
-            img, metadata, channeled = PdcmIO.read_dcm_dir(input_path, header, globber,
-                                                           channels_axis=temp_channels_axis, series=series)
+            img, metadata, channeled = PdcmIO.read_dcm_dir(
+                input_path,
+                header,
+                globber,
+                channels_axis=temp_channels_axis,
+                series=series,
+            )
         else:
             img, metadata, channeled = PdcmIO.read_dcm_file(
-                input_path, header, allow_default_affine=allow_default_affine, channels_axis=temp_channels_axis)
+                input_path,
+                header,
+                allow_default_affine=allow_default_affine,
+                channels_axis=temp_channels_axis,
+            )
         img, metadata = PdcmIO.reorient(img, metadata, desired_ornt)
         # move the channels after the reorientation
         if channeled and channels_axis != temp_channels_axis:
@@ -51,7 +68,9 @@ class PdcmIO:
         return img, metadata
 
     @staticmethod
-    def read_dcm_file(filename, header=False, allow_default_affine=False, channels_axis=None):
+    def read_dcm_file(
+        filename, header=False, allow_default_affine=False, channels_axis=None
+    ):
         """
         Read a single dicom file.
         Return the image array, metadata, and whether it has channels
@@ -66,13 +85,19 @@ class PdcmIO:
         if header:
             metadata.header = {str(key): ds[key] for key in ds.keys()}
         samples_per_pixel = ds.SamplesPerPixel
-        img = PdcmIO.move_channels_axis(img, samples_per_pixel=samples_per_pixel, channels_axis=channels_axis,
-                                        planar_configuration=ds.get('PlanarConfiguration', None),
-                                        default_axes=PdcmIO.DEFAULT_CHANNELS_AXES_PYDICOM)
+        img = PdcmIO.move_channels_axis(
+            img,
+            samples_per_pixel=samples_per_pixel,
+            channels_axis=channels_axis,
+            planar_configuration=ds.get("PlanarConfiguration", None),
+            default_axes=PdcmIO.DEFAULT_CHANNELS_AXES_PYDICOM,
+        )
         return img, metadata, samples_per_pixel > 1
 
     @staticmethod
-    def read_dcm_dir(input_dir, header=False, globber='*', channels_axis=None, series=None):
+    def read_dcm_dir(
+        input_dir, header=False, globber="*", channels_axis=None, series=None
+    ):
         """
         Reads a 3D dicom image: input path can be a file or directory (DICOM series).
         Return the image array, metadata, and whether it has channels
@@ -84,15 +109,21 @@ class PdcmIO:
         if header:
             # TODO: add header support, something like
             #  metdata.header = [{str(key): ds[key] for key in ds.keys()} for ds in slices]
-            raise NotImplementedError("header=True is currently not supported for a series")
+            raise NotImplementedError(
+                "header=True is currently not supported for a series"
+            )
         samples_per_pixel = slices[0].SamplesPerPixel
-        img = PdcmIO.move_channels_axis(img, samples_per_pixel=samples_per_pixel, channels_axis=channels_axis,
-                                        planar_configuration=slices[0].get('PlanarConfiguration', None),
-                                        default_axes=PdcmIO.DEFAULT_CHANNELS_AXES_DICOM_NUMPY)
+        img = PdcmIO.move_channels_axis(
+            img,
+            samples_per_pixel=samples_per_pixel,
+            channels_axis=channels_axis,
+            planar_configuration=slices[0].get("PlanarConfiguration", None),
+            default_axes=PdcmIO.DEFAULT_CHANNELS_AXES_DICOM_NUMPY,
+        )
         return img, metadata, samples_per_pixel > 1
 
     @staticmethod
-    def extract_slices(input_dir, globber='*', series=None):
+    def extract_slices(input_dir, globber="*", series=None):
         """Extract slices from input_dir and return them sorted"""
         files = Path(input_dir).glob(globber)
         slices = [pydicom.dcmread(filename) for filename in files]
@@ -106,7 +137,7 @@ class PdcmIO:
         series_uid = parse_series_uids(input_dir, datasets.keys(), series, globber)
         slices = datasets[series_uid]
 
-        slices.sort(key=lambda ds: ds.get('InstanceNumber', 0))
+        slices.sort(key=lambda ds: ds.get("InstanceNumber", 0))
         return slices
 
     @staticmethod
@@ -114,8 +145,13 @@ class PdcmIO:
         return MetaData(affine, coord_sys=PdcmIO.coord_sys)
 
     @staticmethod
-    def move_channels_axis(array, samples_per_pixel, channels_axis=None, planar_configuration=None,
-                           default_axes=DEFAULT_CHANNELS_AXES_PYDICOM):
+    def move_channels_axis(
+        array,
+        samples_per_pixel,
+        channels_axis=None,
+        planar_configuration=None,
+        default_axes=DEFAULT_CHANNELS_AXES_PYDICOM,
+    ):
         """Move the channels axis from the original axis to the destined channels_axis"""
         if (samples_per_pixel == 1) or (channels_axis is None):
             # no rearrangement is needed
@@ -123,7 +159,9 @@ class PdcmIO:
 
         # extract the original channels axis
         if planar_configuration not in [0, 1]:
-            raise ValueError(f'Invalid Planar Configuration value: {planar_configuration}')
+            raise ValueError(
+                f"Invalid Planar Configuration value: {planar_configuration}"
+            )
 
         orig_axis = default_axes[planar_configuration]
         flag = True  # original channels axis is assigned
@@ -138,7 +176,7 @@ class PdcmIO:
                     break
 
         if not flag:
-            raise ValueError('The original channels axis was not detected')
+            raise ValueError("The original channels axis was not detected")
 
         return np.moveaxis(array, orig_axis, channels_axis)
 
@@ -160,14 +198,20 @@ class PdcmIO:
         reoriented_img_struct = NibIO.reorient(img_struct, desired_ornt)
 
         img = np.asanyarray(reoriented_img_struct.dataobj)
-        metadata = MetaData(reoriented_img_struct.affine, orig_ornt=orig_ornt, coord_sys=NibIO.coord_sys,
-                            header=metadata.header)
+        metadata = MetaData(
+            reoriented_img_struct.affine,
+            orig_ornt=orig_ornt,
+            coord_sys=NibIO.coord_sys,
+            header=metadata.header,
+        )
         # convert back to pydicom convention
         metadata.convert(PdcmIO.coord_sys)
         return img, metadata
 
     @staticmethod
-    def save_arr2dcm_file(output_filename, template_filename, img_arr, dtype=None, keep_rescale=False):
+    def save_arr2dcm_file(
+        output_filename, template_filename, img_arr, dtype=None, keep_rescale=False
+    ):
         """
         Writes a dicom single file image using template file, without the intensity transformation from template dataset
         unless keep_rescale is True

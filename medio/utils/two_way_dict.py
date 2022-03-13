@@ -1,5 +1,6 @@
 class TwoWayDict(dict):
     """Dictionary which contains key-value + value-key pairs: {key: value, value: key}"""
+
     def __setitem__(self, key, value):
         # Remove any previous connections with these values
         if key in self:
