@@ -48,6 +48,11 @@ class ItkIO:
         if input_path.is_dir():
             img = ItkIO.read_dir(str(input_path), pixel_type, fallback_only, series, imageio)
         elif input_path.is_file():
+            # If the input is not a dicom, fallback to not use imageio.
+            # NOTE: this assume imageio is used for dicom files only. If it changed, we need to modify this.
+            is_dicom = imageio.CanReadFile(str(input_path))
+            if not is_dicom:
+                imageio = None
             img = ItkIO.read_img_file(str(input_path), pixel_type, fallback_only, imageio)
         else:
             raise FileNotFoundError(f'No such file or directory: "{input_path}"')
