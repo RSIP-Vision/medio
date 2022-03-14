@@ -60,8 +60,8 @@ class ItkIO:
         elif input_path.is_file():
             # If the input is not a dicom, fallback to not use imageio.
             # NOTE: this assume imageio is used for dicom files only. If it changed, we need to modify this.
-            is_dicom = imageio.CanReadFile(str(input_path))
-            if not is_dicom:
+            use_dicom_imageio = imageio and imageio.CanReadFile(str(input_path))
+            if not use_dicom_imageio:
                 imageio = None
             img = ItkIO.read_img_file(
                 str(input_path), pixel_type, fallback_only, imageio
@@ -81,7 +81,10 @@ class ItkIO:
                 affine=affine, orig_ornt=orig_ornt, coord_sys=ItkIO.coord_sys
             )
         if header:
-            metadict = imageio.GetMetaDataDictionary()
+            if imageio:
+                metadict = imageio.GetMetaDataDictionary()
+            else:
+                metadict = img.GetMetaDataDictionary()
             metadata.header = {
                 key: metadict[key]
                 for key in metadict.GetKeys()
