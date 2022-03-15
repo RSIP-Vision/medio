@@ -45,23 +45,28 @@ class ItkIO:
         coordinates system
         """
         if header:
+            # Currently, only DICOM will use imageio (GDCM). For NIfTI, we'll use ITK default reader.
             imageio = itk.GDCMImageIO.New()
             if private_tags:
                 imageio.LoadPrivateTagsOn()
-            # we need to set the imageio to the reader, but with fallback_only=True it will not set it unless it fails
-            fallback_only = False
         else:
             imageio = None
         input_path = Path(input_path)
         if input_path.is_dir():
+            # We assume that the directory contains dicom series, do imageio will work, if used.
+            if imageio is not None:
+                # we need to set the imageio to the reader, but with fallback_only=True it will not set it unless it fails
+                fallback_only = False
             img = ItkIO.read_dir(
                 str(input_path), pixel_type, fallback_only, series, imageio
             )
         elif input_path.is_file():
-            # If the input is not a dicom, fallback to not use imageio.
-            # NOTE: this assume imageio is used for dicom files only. If it changed, we need to modify this.
-            use_dicom_imageio = imageio and imageio.CanReadFile(str(input_path))
-            if not use_dicom_imageio:
+            # If the input file is not a dicom (e.g. NIfTI), fallback to not use imageio.
+            use_dicom_imageio = imageio.CanReadFile(str(input_path))
+            if use_dicom_imageio:
+                # we need to set the imageio to the reader, but with fallback_only=True it will not set it unless it fails
+                fallback_only = False
+            else:
                 imageio = None
             img = ItkIO.read_img_file(
                 str(input_path), pixel_type, fallback_only, imageio
