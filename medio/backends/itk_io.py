@@ -30,6 +30,7 @@ class ItkIO:
         pixel_type=pixel_type,
         fallback_only=True,
         series=None,
+        private_tags=False,
     ):
         """
         The main reader function, reads images and performs reorientation and unpacking
@@ -43,13 +44,33 @@ class ItkIO:
         :return: numpy image and metadata object which includes pixdim, affine, original orientation string and
         coordinates system
         """
+        if header:
+            # Currently, only DICOM will use imageio (GDCM). For NIfTI, we'll use ITK default reader.
+            imageio = itk.GDCMImageIO.New()
+            if private_tags:
+                imageio.LoadPrivateTagsOn()
+        else:
+            imageio = None
         input_path = Path(input_path)
         if input_path.is_dir():
+            # We assume that the directory contains dicom series, do imageio will work, if used.
+            if imageio is not None:
+                # we need to set the imageio to the reader, but with fallback_only=True it will not set it unless it fails
+                fallback_only = False
             img = ItkIO.read_dir(
-                str(input_path), pixel_type, fallback_only, series=series, header=header
+                str(input_path), pixel_type, fallback_only, series, imageio
             )
         elif input_path.is_file():
-            img = ItkIO.read_img_file(str(input_path), pixel_type, fallback_only)
+            # If the input file is not a dicom (e.g. NIfTI), fallback to not use imageio.
+            use_dicom_imageio = imageio.CanReadFile(str(input_path))
+            if use_dicom_imageio:
+                # we need to set the imageio to the reader, but with fallback_only=True it will not set it unless it fails
+                fallback_only = False
+            else:
+                imageio = None
+            img = ItkIO.read_img_file(
+                str(input_path), pixel_type, fallback_only, imageio
+            )
         else:
             raise FileNotFoundError(f'No such file or directory: "{input_path}"')
 
@@ -65,8 +86,10 @@ class ItkIO:
                 affine=affine, orig_ornt=orig_ornt, coord_sys=ItkIO.coord_sys
             )
         if header:
-            # TODO: not implemented for a series (returns an empty dictionary), see ItkIO.read_dir
-            metadict = img.GetMetaDataDictionary()
+            if imageio:
+                metadict = imageio.GetMetaDataDictionary()
+            else:
+                metadict = img.GetMetaDataDictionary()
             metadata.header = {
                 key: metadict[key]
                 for key in metadict.GetKeys()
@@ -174,14 +197,15 @@ class ItkIO:
         )
 
     @staticmethod
-    def read_img_file(filename, pixel_type=None, fallback_only=False):
+    def read_img_file(filename, pixel_type=None, fallback_only=False, imageio=None):
         """Common pixel types: itk.SS (int16), itk.US (uint16), itk.UC (uint8)"""
-        return itk.imread(filename, pixel_type, fallback_only)
+        return itk.imread(filename, pixel_type, fallback_only, imageio)
 
     @staticmethod
     def read_img_file_long(filename, image_type=image_type):
         """Longer version of itk.imread that returns the itk image and io engine string"""
         reader = itk.ImageFileReader[image_type].New()
+        reader.LoadPrivateTagsOn()
         reader.SetFileName(filename)
         reader.Update()
         image_io = str(reader.GetImageIO()).split(" ")[0]
@@ -285,7 +309,7 @@ class ItkIO:
 
     @staticmethod
     def read_dir(
-        dirname, pixel_type=None, fallback_only=False, series=None, header=False
+        dirname, pixel_type=None, fallback_only=False, series=None, imageio=None
     ):
         """
         Read a dicom directory. If there is more than one series in the directory an error is raised
@@ -294,16 +318,7 @@ class ItkIO:
         >>> itk.imread([filename0, filename1, ...])
         """
         filenames = ItkIO.extract_series(dirname, series)
-        if header and isinstance(filenames, (tuple, list)):
-            # TODO: to extract the metadata dictionary array use:
-            #  reader = itk.ImageSeriesReader.New(FileNames=filenames)
-            #  reader.Update()
-            #  metadict_arr = reader.GetMetaDataDictionaryArray()
-            #  (See also itk.imread source code)
-            raise NotImplementedError(
-                "header=True is currently not supported for a series"
-            )
-        return itk.imread(filenames, pixel_type, fallback_only)
+        return itk.imread(filenames, pixel_type, fallback_only, imageio)
 
     @staticmethod
     def extract_series(dirname, series=None):
