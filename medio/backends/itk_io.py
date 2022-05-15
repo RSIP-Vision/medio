@@ -62,7 +62,7 @@ class ItkIO:
             )
         elif input_path.is_file():
             # If the input file is not a dicom (e.g. NIfTI), fallback to not use imageio.
-            use_dicom_imageio = imageio.CanReadFile(str(input_path))
+            use_dicom_imageio = imageio is not None and imageio.CanReadFile(str(input_path))
             if use_dicom_imageio:
                 # we need to set the imageio to the reader, but with fallback_only=True it will not set it unless it fails
                 fallback_only = False
