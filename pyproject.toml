@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "medio"
-version = "0.4.1"
+version = "0.4.2"
 description = "Medical images I/O Python package"
 authors = [
     "RSIP Vision <info@rsipvision.com>",
