@@ -146,3 +146,6 @@ static
 
 # Git mergetool
 *.orig
+
+# Hatch
+.hatch/
