@@ -29,8 +29,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "itk>=5.1.2,<6; python_version >= '3.9'",
-    "itk<=5.1.2; python_version < '3.9'",
+    "itk",
     "nibabel",
     "pydicom",
     "dicom-numpy",

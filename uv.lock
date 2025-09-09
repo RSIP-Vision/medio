@@ -517,8 +517,7 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "dicom-numpy" },
-    { name = "itk", marker = "python_full_version < '3.9'", specifier = "<=5.1.2" },
-    { name = "itk", marker = "python_full_version >= '3.9'", specifier = ">=5.1.2,<6" },
+    { name = "itk" },
     { name = "nibabel" },
     { name = "pydicom" },
     { name = "pytest", marker = "python_full_version >= '3.9' and extra == 'test'", specifier = ">=8.4.2,<9" },
