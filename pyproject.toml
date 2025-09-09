@@ -1,14 +1,14 @@
-[tool.poetry]
+[project]
 name = "medio"
 version = "0.4.2"
 description = "Medical images I/O Python package"
 authors = [
-    "RSIP Vision <info@rsipvision.com>",
-    "Jonathan Daniel <jonathand655@gmail.com>",
+    { name = "RSIP Vision", email = "info@rsipvision.com" },
+    { name = "Jonathan Daniel", email = "jonathand655@gmail.com" },
 ]
-license = "Apache-2.0"
+    requires-python = "~=3.7"
 readme = "README.md"
-repository = "https://github.com/RSIP-Vision/medio"
+license = "Apache-2.0"
 keywords = ["medical-images", "IO", "itk", "nibabel", "pydicom"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -27,26 +27,25 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Image Processing",
     "Topic :: Scientific/Engineering :: Medical Science Apps.",
     "Topic :: Software Development :: Libraries :: Python Modules",
-#    "Typing :: Typed",  # TODO: Add typing support
+]
+dependencies = [
+    "itk>=5.1.2,<6; python_version >= '3.9'",
+    "itk<=5.1.2; python_version < '3.9'",
+    "nibabel",
+    "pydicom",
+    "dicom-numpy",
 ]
 
-[tool.poetry.dependencies]
-python = "^3.7"
-itk = "^5.1.2"
-nibabel = "^3.2.1"
-pydicom = "^2.1.2"
-dicom-numpy = ">= 0.5.0, < 1"
-numpy = [
-    {version = "^1.21.5", python = ">= 3.7, < 3.11"},
-    {version = "^1.22.2", python = "^3.8"},
+[project.optional-dependencies]
+test = [
+    "pytest>=8.4.2,<9; python_version >= '3.9'",
+    "pytest<8.4.2; python_version < '3.9'",
 ]
 
-[tool.poetry.dev-dependencies]
-black = "^22.1.0"
-
-[tool.poetry.urls]
+[project.urls]
+Repository = "https://github.com/RSIP-Vision/medio"
 "Bug Tracker" = "https://github.com/RSIP-Vision/medio/issues"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
