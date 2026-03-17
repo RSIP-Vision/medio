@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 NiBabel <-> ITK orientation and affine conversion utilities.
 The conventions of nibabel and itk are different and this module supplies functions which convert between
@@ -29,6 +31,7 @@ Works both ways: itk -> nib and nib -> itk, the usage is the same:
 """
 
 import numpy as np
+from numpy.typing import NDArray
 
 from medio.metadata.affine import Affine
 from medio.utils.two_way_dict import TwoWayDict
@@ -40,7 +43,7 @@ axes_inv["A"] = "P"
 axes_inv["S"] = "I"
 
 
-def inv_axcodes(axcodes):
+def inv_axcodes(axcodes: str | None) -> str | None:
     """Inverse axes codes chars, for example: SPL -> IAR"""
     if axcodes is None:
         return None
@@ -50,7 +53,7 @@ def inv_axcodes(axcodes):
     return new_axcodes
 
 
-def convert_affine(affine):
+def convert_affine(affine: NDArray[np.floating] | Affine) -> NDArray[np.floating] | Affine:
     # conversion matrix of the affine from itk to nibabel and vice versa
     convert_aff_mat = np.diag([-1, -1, 1, 1])
     # for 2d image:
@@ -62,7 +65,7 @@ def convert_affine(affine):
     return new_affine
 
 
-def convert_nib_itk(affine, *axcodes):
+def convert_nib_itk(affine: NDArray[np.floating] | Affine, *axcodes: str | None) -> tuple[NDArray[np.floating] | Affine | str | None, ...]:
     """Convert affine and orientations (original and current orientations) from nibabel to itk and vice versa"""
     new_affine = convert_affine(affine)
     new_axcodes = []

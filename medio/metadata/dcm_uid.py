@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from functools import partial
 
 from pydicom.uid import generate_uid
