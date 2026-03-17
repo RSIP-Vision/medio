@@ -91,10 +91,10 @@ class TestSaveDicomDir:
 class TestInvalidBackend:
     def test_invalid_read_backend(self) -> None:
         with pytest.raises(ValueError):
-            read_img(TEST_NII, backend="invalid")
+            read_img(TEST_NII, backend="invalid")  # type: ignore[call-overload]
 
     def test_invalid_save_backend(self) -> None:
         arr = np.zeros((10, 10, 10))
         meta_data = read_img(TEST_NII)[1]
         with pytest.raises(ValueError):
-            save_img("/tmp/test.nii.gz", arr, meta_data, backend="invalid")
+            save_img("/tmp/test.nii.gz", arr, meta_data, backend="invalid")  # type: ignore[arg-type]

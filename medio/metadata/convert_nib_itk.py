@@ -80,6 +80,29 @@ def convert_affine(affine: NDArray[np.floating] | Affine) -> NDArray[np.floating
     return new_affine
 
 
+@overload
+def convert_nib_itk(
+    affine: Affine,
+    axcode1: str | None,
+    axcode2: str | None,
+) -> tuple[Affine, str | None, str | None]: ...
+
+
+@overload
+def convert_nib_itk(
+    affine: NDArray[np.floating],
+    axcode1: str | None,
+    axcode2: str | None,
+) -> tuple[NDArray[np.floating], str | None, str | None]: ...
+
+
+@overload
+def convert_nib_itk(
+    affine: NDArray[np.floating] | Affine,
+    *axcodes: str | None,
+) -> tuple[NDArray[np.floating] | Affine | str | None, ...]: ...
+
+
 def convert_nib_itk(
     affine: NDArray[np.floating] | Affine, *axcodes: str | None
 ) -> tuple[NDArray[np.floating] | Affine | str | None, ...]:

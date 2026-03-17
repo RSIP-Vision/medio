@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar, Literal
 
 import nibabel as nib
+import nibabel.spatialimages
 import numpy as np
 
 from medio.metadata.affine import Affine
@@ -13,11 +14,11 @@ if TYPE_CHECKING:
 
     from numpy.typing import NDArray
 
-NibImage = nib.spatialimages.SpatialImage
+NibImage = nibabel.spatialimages.SpatialImage
 
 
 class NibIO:
-    coord_sys: str = "nib"
+    coord_sys: ClassVar[Literal["nib"]] = "nib"
     RGB_DTYPE = np.dtype([("R", np.uint8), ("G", np.uint8), ("B", np.uint8)])
     RGBA_DTYPE = np.dtype([("R", np.uint8), ("G", np.uint8), ("B", np.uint8), ("A", np.uint8)])
 

@@ -17,12 +17,12 @@ if TYPE_CHECKING:
 
 class MedImg:
     np_image: NDArray[np.generic]
-    metadata: MetaData[object]
+    metadata: MetaData[Any]
 
     def __init__(
         self,
         np_image: NDArray[np.generic] | None,
-        metadata: MetaData[object] | None,
+        metadata: MetaData[Any] | None,
         filename: str | os.PathLike[str] | None = None,
         **kwargs: Any,
     ) -> None:

@@ -33,7 +33,7 @@ class TestMetaDataConstruction:
     def test_invalid_coord_sys(self) -> None:
         aff = Affine(np.eye(4))
         with pytest.raises(ValueError):
-            MetaData(aff, coord_sys="invalid")
+            MetaData(aff, coord_sys="invalid")  # type: ignore[arg-type]
 
     def test_accepts_ndarray(self) -> None:
         meta = MetaData(np.eye(4), coord_sys="itk")

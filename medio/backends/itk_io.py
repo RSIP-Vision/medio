@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar, Literal
 
 import itk
 import numpy as np
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 
 class ItkIO:
-    coord_sys: str = "itk"
+    coord_sys: ClassVar[Literal["itk"]] = "itk"
     DEFAULT_COMPONENTS_AXIS: int = 0  # in the transposed image
     # default image type:
     dimension: int = 3

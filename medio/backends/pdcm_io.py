@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar, Literal
 
 import nibabel as nib
 import numpy as np
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 
 class PdcmIO:
-    coord_sys: str = "itk"
+    coord_sys: ClassVar[Literal["itk"]] = "itk"
     # channels axes in the transposed image for pydicom and dicom-numpy. The actual axis is the first or the second
     # value of the tuple, according to the planar configuration (which is either 0 or 1)
     DEFAULT_CHANNELS_AXES_PYDICOM: tuple[int, int] = (0, -1)

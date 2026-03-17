@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pprint
 from copy import deepcopy
-from typing import TYPE_CHECKING, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, Literal, cast
 
 import numpy as np
 from nibabel import aff2axcodes
@@ -12,17 +12,22 @@ from medio.metadata.convert_nib_itk import convert_affine, convert_nib_itk, inv_
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
-    from typing_extensions import Self
+    from typing_extensions import Self, TypeVar
 
-H = TypeVar("H")
+    H = TypeVar("H", default=None)
+else:
+    from typing import TypeVar
+
+    H = TypeVar("H")
 
 HeaderDict = dict[str, object]
+CoordSys = Literal["itk", "nib"]
 
 
 class MetaData(Generic[H]):
     affine: Affine
     orig_ornt: str | None
-    coord_sys: str
+    coord_sys: CoordSys
     header: H | None
     _ornt: str | None
 
@@ -30,7 +35,7 @@ class MetaData(Generic[H]):
         self,
         affine: Affine | NDArray[np.floating],
         orig_ornt: str | None = None,
-        coord_sys: str = "itk",
+        coord_sys: CoordSys = "itk",
         header: H | None = None,
     ) -> None:
         """
@@ -46,14 +51,14 @@ class MetaData(Generic[H]):
         self.affine = affine
         self.orig_ornt = orig_ornt
         self._ornt = None
-        self.check_valid_coord_sys(coord_sys)
-        self.coord_sys = coord_sys
+        self.coord_sys = self.check_valid_coord_sys(coord_sys)
         self.header = header
 
     @staticmethod
-    def check_valid_coord_sys(coord_sys: str) -> None:
+    def check_valid_coord_sys(coord_sys: str) -> CoordSys:
         if coord_sys not in ("itk", "nib"):
             raise ValueError('Metadata coord_sys must be "itk" or "nib"')
+        return cast("CoordSys", coord_sys)
 
     def __repr__(self) -> str:
         sep = " " if self.header is None else "\n"
@@ -68,14 +73,14 @@ class MetaData(Generic[H]):
             f"{pprint.pformat(self.header, indent=4)}"
         )
 
-    def convert(self, dest_coord_sys: str) -> None:
+    def convert(self, dest_coord_sys: CoordSys) -> None:
         """
         Converts the metadata coordinate system in-place to dest_coord_sys. Affects affine, ornt and orig_ornt
         :param dest_coord_sys: the destination coordinate system - 'itk' or 'nib' (nifti)
         """
-        self.check_valid_coord_sys(dest_coord_sys)
+        MetaData.check_valid_coord_sys(dest_coord_sys)  # runtime validation
         if dest_coord_sys != self.coord_sys:
-            self.affine, self._ornt, self.orig_ornt = convert_nib_itk(self.affine, self._ornt, self.orig_ornt)  # type: ignore[assignment, arg-type]
+            self.affine, self._ornt, self.orig_ornt = convert_nib_itk(self.affine, self._ornt, self.orig_ornt)
             self.coord_sys = dest_coord_sys
 
     def clone(self) -> Self:
@@ -89,13 +94,9 @@ class MetaData(Generic[H]):
     def get_ornt(self) -> str:
         """Returns current orientation based on the affine and coordinate system"""
         if self.coord_sys == "nib":
-            ornt_tup = aff2axcodes(self.affine)
-        elif self.coord_sys == "itk":
-            ornt_tup = inv_axcodes("".join(aff2axcodes(convert_affine(self.affine))))
-        else:
-            raise ValueError(f'Invalid coord_sys: "{self.coord_sys}"')
-        ornt_str = "".join(ornt_tup)
-        return ornt_str
+            return "".join(aff2axcodes(self.affine))
+        else:  # "itk"
+            return inv_axcodes("".join(aff2axcodes(convert_affine(self.affine))))
 
     @property
     def ornt(self) -> str:
@@ -144,7 +145,7 @@ def flip_last_axcodes(axcodes: str) -> str:
     return axcodes[:-1] + inv_axcodes(axcodes[-1])
 
 
-def check_dcm_ornt(desired_ornt: str | None, metadata: MetaData[object], allow_dcm_reorient: bool = False) -> str:
+def check_dcm_ornt(desired_ornt: str | None, metadata: MetaData[Any], allow_dcm_reorient: bool = False) -> str:
     """Check whether the orientation desired_ornt is right handed before saving image as a dicom
     :param desired_ornt: the desired orientation for the saver
     :param metadata: if desired_ornt is None (not set), use metadata.ornt

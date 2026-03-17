@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal, overload
 
 from medio.backends.itk_io import ItkIO
 from medio.backends.nib_io import NibIO
@@ -15,17 +15,47 @@ if TYPE_CHECKING:
     import numpy as np
     from numpy.typing import NDArray
 
-    from medio.metadata.metadata import MetaData
+    from medio.metadata.metadata import CoordSys, HeaderDict, MetaData
+
+ReadBackend = Literal["itk", "nib", "pdcm", "pydicom"]
+WriteBackend = Literal["itk", "nib"]
+
+
+@overload
+def read_img(
+    input_path: str | os.PathLike[str],
+    desired_ornt: str | None = ...,
+    backend: ReadBackend | None = ...,
+    dtype: np.dtype[np.generic] | type | None = ...,
+    *,
+    header: Literal[True],
+    channels_axis: int | None = ...,
+    coord_sys: CoordSys | None = ...,
+    **kwargs: Any,
+) -> tuple[NDArray[np.generic], MetaData[HeaderDict]]: ...
+
+
+@overload
+def read_img(
+    input_path: str | os.PathLike[str],
+    desired_ornt: str | None = ...,
+    backend: ReadBackend | None = ...,
+    dtype: np.dtype[np.generic] | type | None = ...,
+    header: bool = ...,
+    channels_axis: int | None = ...,
+    coord_sys: CoordSys | None = ...,
+    **kwargs: Any,
+) -> tuple[NDArray[np.generic], MetaData[object]]: ...
 
 
 def read_img(
     input_path: str | os.PathLike[str],
     desired_ornt: str | None = None,
-    backend: str | None = None,
+    backend: ReadBackend | None = None,
     dtype: np.dtype[np.generic] | type | None = None,
     header: bool = False,
     channels_axis: int | None = -1,
-    coord_sys: str | None = "itk",
+    coord_sys: CoordSys | None = "itk",
     **kwargs: Any,
 ) -> tuple[NDArray[np.generic], MetaData[object]]:
     """
@@ -77,9 +107,9 @@ def read_img(
 def save_img(
     filename: str | os.PathLike[str],
     np_image: NDArray[np.generic],
-    metadata: MetaData[object],
+    metadata: MetaData[Any],
     use_original_ornt: bool = True,
-    backend: str | None = None,
+    backend: WriteBackend | None = None,
     dtype: np.dtype[np.generic] | type | None = None,
     channels_axis: int | None = None,
     mkdir: bool = False,
@@ -119,7 +149,7 @@ def save_img(
 def save_dir(
     dirname: str | os.PathLike[str],
     np_image: NDArray[np.generic],
-    metadata: MetaData[object],
+    metadata: MetaData[Any],
     use_original_ornt: bool = True,
     dtype: np.dtype[np.generic] | type | None = None,
     channels_axis: int | None = None,
