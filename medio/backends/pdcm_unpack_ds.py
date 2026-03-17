@@ -4,15 +4,18 @@ This module is equivalent to dicom_numpy's module: combine_slices.py, but here f
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
 import numpy as np
-import pydicom
 from dicom_numpy.combine_slices import (
     _extract_cosines,
     _requires_rescaling,
     _validate_image_orientation,
 )
-from numpy.typing import NDArray
+
+if TYPE_CHECKING:
+    import pydicom
+    from numpy.typing import NDArray
 
 logger = logging.getLogger(__name__)
 

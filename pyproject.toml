@@ -71,3 +71,21 @@ quote-style = "double"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ty.environment]
+python-version = "3.9"
+
+[tool.ty.src]
+exclude = ["tests/itk_dcm_orientations"]
+
+[[tool.ty.overrides]]
+include = ["medio/backends/itk_io.py"]
+rules = {unresolved-attribute = "ignore", invalid-parameter-default = "ignore"}
+
+[[tool.ty.overrides]]
+include = ["medio/backends/nib_io.py"]
+rules = {unresolved-attribute = "ignore", possibly-missing-submodule = "ignore", not-subscriptable = "ignore", not-iterable = "ignore"}
+
+[[tool.ty.overrides]]
+include = ["medio/backends/pdcm_io.py"]
+rules = {possibly-missing-submodule = "ignore"}

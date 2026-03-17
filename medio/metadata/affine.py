@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
-from numpy.typing import NDArray
-from typing_extensions import Self
+
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
+    from typing_extensions import Self
 
 
-class Affine(np.ndarray):  # type: ignore[type-arg]
+class Affine(np.ndarray):
     """
     Class for general (d+1)x(d+1) affine matrices, and in particular d=3 (3d space)
     Usage examples:
@@ -73,7 +77,7 @@ class Affine(np.ndarray):  # type: ignore[type-arg]
         return super().__getitem__(item).view(np.ndarray)
 
     def clone(self) -> Self:
-        return Affine(self.copy())
+        return Affine(self.copy())  # type: ignore[return-value]
 
     # Affine properties in addition to the numpy array
     @property
@@ -138,7 +142,9 @@ class Affine(np.ndarray):  # type: ignore[type-arg]
         return np.linalg.norm(affine[Affine._m_key] @ np.eye(dim), axis=0)
 
     @staticmethod
-    def affine2direction(affine: NDArray[np.floating], spacing: NDArray[np.floating] | None = None) -> NDArray[np.floating]:
+    def affine2direction(
+        affine: NDArray[np.floating], spacing: NDArray[np.floating] | None = None
+    ) -> NDArray[np.floating]:
         if spacing is None:
             spacing = Affine.affine2spacing(affine)
         return affine[Affine._m_key] @ np.diag(1 / spacing)

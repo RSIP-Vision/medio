@@ -1,15 +1,18 @@
 from __future__ import annotations
 
-import os
-
-import numpy as np
-from numpy.typing import NDArray
-from typing_extensions import Self
+from typing import TYPE_CHECKING, Any
 
 from medio.metadata.affine import Affine
 from medio.metadata.metadata import MetaData
 from medio.read_save import read_img, save_img
 from medio.utils.explicit_slicing import explicit_inds
+
+if TYPE_CHECKING:
+    import os
+
+    import numpy as np
+    from numpy.typing import NDArray
+    from typing_extensions import Self
 
 
 class MedImg:
@@ -21,7 +24,7 @@ class MedImg:
         np_image: NDArray[np.generic] | None,
         metadata: MetaData[object] | None,
         filename: str | os.PathLike[str] | None = None,
-        **kwargs: object,
+        **kwargs: Any,
     ) -> None:
         """
         Class for a single medical image, represented by numpy array and metadata object - image affine, original
@@ -34,9 +37,9 @@ class MedImg:
         if filename is not None:
             np_image, metadata = read_img(filename, **kwargs)
         self.np_image = np_image
-        self.metadata = metadata
+        self.metadata = metadata  # type: ignore[assignment]
 
-    def save(self, filename: str | os.PathLike[str], **kwargs: object) -> None:
+    def save(self, filename: str | os.PathLike[str], **kwargs: Any) -> None:
         save_img(filename, self.np_image, self.metadata, **kwargs)
 
     def __getitem__(self, item: tuple[object, ...]) -> Self:
@@ -53,4 +56,4 @@ class MedImg:
         affine.origin = affine.index2coord(start)
         affine.spacing = affine.spacing * stride
         metadata = MetaData(affine, self.metadata.orig_ornt, self.metadata.coord_sys)
-        return MedImg(np_image, metadata)
+        return MedImg(np_image, metadata)  # type: ignore[return-value]

@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
+from medio.medimg.medimg import MedImg
 from medio.metadata.affine import Affine
 from medio.metadata.metadata import MetaData
-from medio.medimg.medimg import MedImg
 
 
 class TestMedImgConstruction:
@@ -15,7 +14,7 @@ class TestMedImgConstruction:
         mimg = MedImg(arr, meta)
         assert mimg.np_image.shape == (10, 20, 30)
 
-    def test_from_file(self, nii_path) -> None:  # type: ignore[no-untyped-def]
+    def test_from_file(self, nii_path) -> None:
         mimg = MedImg(None, None, filename=nii_path)
         assert mimg.np_image is not None
         assert mimg.np_image.ndim == 3
@@ -64,7 +63,7 @@ class TestMedImgSlicing:
 
 
 class TestMedImgSave:
-    def test_save_roundtrip(self, nii_path, tmp_dir) -> None:  # type: ignore[no-untyped-def]
+    def test_save_roundtrip(self, nii_path, tmp_dir) -> None:
         mimg = MedImg(None, None, filename=nii_path)
         out = tmp_dir / "out.nii.gz"
         mimg.save(out)

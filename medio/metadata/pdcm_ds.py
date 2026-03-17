@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from pydicom.dataset import FileDataset
-from pydicom.valuerep import DSfloat
 from typing_extensions import override
+
+if TYPE_CHECKING:
+    from pydicom.valuerep import DSfloat
 
 
 def convert_ds(dataset: FileDataset) -> FileDataset | MultiFrameFileDataset:

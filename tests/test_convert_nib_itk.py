@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
 from medio.metadata.affine import Affine
 from medio.metadata.convert_nib_itk import convert_affine, convert_nib_itk, inv_axcodes
@@ -56,12 +55,12 @@ class TestConvertAffine:
 class TestConvertNibItk:
     def test_with_axcodes(self) -> None:
         aff = Affine(np.eye(4))
-        new_aff, new_axcodes = convert_nib_itk(aff, "RAS")
+        _, new_axcodes = convert_nib_itk(aff, "RAS")
         assert new_axcodes == "LPI"
 
     def test_with_none_axcodes(self) -> None:
         aff = Affine(np.eye(4))
-        new_aff, new_axcodes = convert_nib_itk(aff, None)
+        _, new_axcodes = convert_nib_itk(aff, None)
         assert new_axcodes is None
 
     def test_roundtrip(self) -> None:

@@ -1,18 +1,22 @@
 from __future__ import annotations
 
-import os
 from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 import itk
 import numpy as np
-from numpy.typing import NDArray
 
 from medio.metadata.affine import Affine
 from medio.metadata.dcm_uid import generate_uid
 from medio.metadata.itk_orientation import itk_orientation_code
 from medio.metadata.metadata import MetaData, check_dcm_ornt
 from medio.utils.files import is_dicom, make_dir, parse_series_uids
+
+if TYPE_CHECKING:
+    import os
+
+    from numpy.typing import NDArray
 
 
 class ItkIO:
@@ -178,7 +182,12 @@ class ItkIO:
         )
 
     @staticmethod
-    def read_img_file(filename: str, pixel_type: type | None = None, fallback_only: bool = False, imageio: object | None = None) -> object:
+    def read_img_file(
+        filename: str,
+        pixel_type: type | None = None,
+        fallback_only: bool = False,
+        imageio: object | None = None,
+    ) -> object:
         """Common pixel types: itk.SS (int16), itk.US (uint16), itk.UC (uint8)"""
         return itk.imread(filename, pixel_type, fallback_only, imageio)
 
@@ -243,7 +252,11 @@ class ItkIO:
         return Affine(direction=direction, spacing=spacing, origin=origin)
 
     @staticmethod
-    def pack2img(image_np: NDArray[np.generic], affine: Affine | NDArray[np.floating], components_axis: int | None = None) -> object:
+    def pack2img(
+        image_np: NDArray[np.generic],
+        affine: Affine | NDArray[np.floating],
+        components_axis: int | None = None,
+    ) -> object:
         image = ItkIO.array_to_itk_img(image_np, components_axis)
         ItkIO.set_img_aff(image, affine)
         return image
@@ -285,7 +298,13 @@ class ItkIO:
         return reoriented_itk_img, original_orientation_code
 
     @staticmethod
-    def read_dir(dirname: str, pixel_type: type | None = None, fallback_only: bool = False, series: str | int | None = None, imageio: object | None = None) -> object:
+    def read_dir(
+        dirname: str,
+        pixel_type: type | None = None,
+        fallback_only: bool = False,
+        series: str | int | None = None,
+        imageio: object | None = None,
+    ) -> object:
         """
         Read a dicom directory. If there is more than one series in the directory an error is raised
         (unless the series argument is used properly).
@@ -320,7 +339,7 @@ class ItkIO:
         parents: bool = False,
         exist_ok: bool = False,
         allow_dcm_reorient: bool = False,
-        **kwargs: object,
+        **kwargs: Any,
     ) -> None:
         """
         Save a 3d numpy array image_np as a dicom series of 2d dicom slices in the directory dirname
@@ -360,7 +379,12 @@ class ItkIO:
         writer.Update()
 
     @staticmethod
-    def dcm_series_metadata(image: object, dirname: str | os.PathLike[str], pattern: str = "IM{}.dcm", metadata_dict: dict[str, str] | None = None) -> tuple[list[object], list[str]]:
+    def dcm_series_metadata(
+        image: object,
+        dirname: str | os.PathLike[str],
+        pattern: str = "IM{}.dcm",
+        metadata_dict: dict[str, str] | None = None,
+    ) -> tuple[list[object], list[str]]:
         """
         Return dicom series metadata per slice and filenames
         :param image: the full itk image to be saved as dicom series

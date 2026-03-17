@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import os
 import pprint
-from collections.abc import Iterable
 from pathlib import Path
+from typing import TYPE_CHECKING, Union
 
 from typing_extensions import TypeGuard
 
-PathLike = os.PathLike[str] | str
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+PathLike = Union[os.PathLike[str], str]
 
 
 def is_file_suffix(filename: PathLike, suffixes: tuple[str, ...], check_exist: bool = True) -> bool:
@@ -57,7 +60,12 @@ def make_dir(dir_path: PathLike, parents: bool = False, exist_ok: bool = False) 
         make_empty_dir(dir_path, parents)
 
 
-def parse_series_uids(input_dir: PathLike, series_uids: Iterable[str], series: str | int | None = None, globber: str | None = None) -> str:
+def parse_series_uids(
+    input_dir: PathLike,
+    series_uids: Iterable[str],
+    series: str | int | None = None,
+    globber: str | None = None,
+) -> str:
     """Receive an input dir, an iterable of series UIDs, and a series (UID string or int),
     return a series uid according to series_uids and series"""
     keys = sorted(series_uids)
@@ -71,7 +79,7 @@ def parse_series_uids(input_dir: PathLike, series_uids: Iterable[str], series: s
         return keys[0]
 
     # if there is more than a single series
-    if num_series > 1:
+    else:
         if series is None:
             raise ValueError(
                 f'The directory: "{input_dir}"\n'

@@ -2,15 +2,17 @@ from __future__ import annotations
 
 import pprint
 from copy import deepcopy
-from typing import Generic, TypeVar
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 import numpy as np
 from nibabel import aff2axcodes
-from numpy.typing import NDArray
-from typing_extensions import Self
 
 from medio.metadata.affine import Affine
 from medio.metadata.convert_nib_itk import convert_affine, convert_nib_itk, inv_axcodes
+
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
+    from typing_extensions import Self
 
 H = TypeVar("H")
 
@@ -22,6 +24,7 @@ class MetaData(Generic[H]):
     orig_ornt: str | None
     coord_sys: str
     header: H | None
+    _ornt: str | None
 
     def __init__(
         self,
@@ -72,11 +75,11 @@ class MetaData(Generic[H]):
         """
         self.check_valid_coord_sys(dest_coord_sys)
         if dest_coord_sys != self.coord_sys:
-            self.affine, self._ornt, self.orig_ornt = convert_nib_itk(self.affine, self._ornt, self.orig_ornt)
+            self.affine, self._ornt, self.orig_ornt = convert_nib_itk(self.affine, self._ornt, self.orig_ornt)  # type: ignore[assignment, arg-type]
             self.coord_sys = dest_coord_sys
 
     def clone(self) -> Self:
-        return MetaData(
+        return MetaData(  # type: ignore[return-value]
             affine=self.affine.clone(),
             orig_ornt=self.orig_ornt,
             coord_sys=self.coord_sys,
@@ -88,7 +91,7 @@ class MetaData(Generic[H]):
         if self.coord_sys == "nib":
             ornt_tup = aff2axcodes(self.affine)
         elif self.coord_sys == "itk":
-            ornt_tup = inv_axcodes(aff2axcodes(convert_affine(self.affine)))
+            ornt_tup = inv_axcodes("".join(aff2axcodes(convert_affine(self.affine))))
         else:
             raise ValueError(f'Invalid coord_sys: "{self.coord_sys}"')
         ornt_str = "".join(ornt_tup)

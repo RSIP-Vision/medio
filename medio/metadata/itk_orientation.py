@@ -1,8 +1,7 @@
-from __future__ import annotations
-
 """
 This module is based on the C++ ITK code - itkSpatialOrientation.h
 """
+from __future__ import annotations
 
 import itertools
 from enum import IntEnum

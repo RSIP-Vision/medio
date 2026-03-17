@@ -1,17 +1,21 @@
 from __future__ import annotations
 
-import os
 from pathlib import Path
-
-import numpy as np
-from numpy.typing import NDArray
+from typing import TYPE_CHECKING, Any
 
 from medio.backends.itk_io import ItkIO
 from medio.backends.nib_io import NibIO
 from medio.backends.pdcm_io import PdcmIO
 from medio.metadata.convert_nib_itk import inv_axcodes
-from medio.metadata.metadata import MetaData
 from medio.utils.files import is_nifti
+
+if TYPE_CHECKING:
+    import os
+
+    import numpy as np
+    from numpy.typing import NDArray
+
+    from medio.metadata.metadata import MetaData
 
 
 def read_img(
@@ -22,7 +26,7 @@ def read_img(
     header: bool = False,
     channels_axis: int | None = -1,
     coord_sys: str | None = "itk",
-    **kwargs: object,
+    **kwargs: Any,
 ) -> tuple[NDArray[np.generic], MetaData[object]]:
     """
     Read medical image with nibabel or itk
@@ -80,7 +84,7 @@ def save_img(
     channels_axis: int | None = None,
     mkdir: bool = False,
     parents: bool = False,
-    **kwargs: object,
+    **kwargs: Any,
 ) -> None:
     """
     Save numpy image with corresponding metadata to file
@@ -122,7 +126,7 @@ def save_dir(
     parents: bool = False,
     exist_ok: bool = False,
     allow_dcm_reorient: bool = False,
-    **kwargs: object,
+    **kwargs: Any,
 ) -> None:
     """
     Save image as a dicom directory. See medio.backends.itk_io.ItkIO.save_dcm_dir documentation.

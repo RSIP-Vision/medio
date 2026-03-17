@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import os
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import nibabel as nib
 import numpy as np
 import pydicom
 from dicom_numpy import combine_slices
-from numpy.typing import NDArray
 
 from medio.backends.nib_io import NibIO
 from medio.backends.pdcm_unpack_ds import unpack_dataset
@@ -15,6 +14,11 @@ from medio.metadata.convert_nib_itk import inv_axcodes
 from medio.metadata.metadata import MetaData
 from medio.metadata.pdcm_ds import MultiFrameFileDataset, convert_ds
 from medio.utils.files import parse_series_uids
+
+if TYPE_CHECKING:
+    import os
+
+    from numpy.typing import NDArray
 
 
 class PdcmIO:
@@ -154,7 +158,7 @@ class PdcmIO:
         return slices
 
     @staticmethod
-    def aff2meta(affine: NDArray[np.floating]) -> MetaData[None]:
+    def aff2meta(affine: NDArray[np.floating]) -> MetaData[object]:
         return MetaData(affine, coord_sys=PdcmIO.coord_sys)
 
     @staticmethod

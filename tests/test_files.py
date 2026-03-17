@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-import tempfile
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from medio.utils.files import is_dicom, is_nifti, make_dir, make_empty_dir
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class TestIsNifti:

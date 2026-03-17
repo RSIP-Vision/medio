@@ -1,13 +1,17 @@
 from __future__ import annotations
 
-import os
+from typing import TYPE_CHECKING
 
 import nibabel as nib
 import numpy as np
-from numpy.typing import NDArray
 
 from medio.metadata.affine import Affine
 from medio.metadata.metadata import MetaData
+
+if TYPE_CHECKING:
+    import os
+
+    from numpy.typing import NDArray
 
 NibImage = nib.spatialimages.SpatialImage
 

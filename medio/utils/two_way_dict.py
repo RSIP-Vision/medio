@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, Union
 
 KT = TypeVar("KT")
 VT = TypeVar("VT")
 
 
-class TwoWayDict(dict[KT | VT, KT | VT], Generic[KT, VT]):
+class TwoWayDict(dict[Union[KT, VT], Union[KT, VT]], Generic[KT, VT]):
     """Dictionary which contains key-value + value-key pairs: {key: value, value: key}"""
 
     def __setitem__(self, key: KT | VT, value: KT | VT) -> None:

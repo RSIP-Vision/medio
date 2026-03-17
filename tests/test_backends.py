@@ -20,37 +20,37 @@ class TestReadNifti:
         assert meta.coord_sys == "itk"
 
     def test_read_nii_nib_backend(self) -> None:
-        arr, meta = read_img(TEST_NII, backend="nib")
+        arr, _ = read_img(TEST_NII, backend="nib")
         assert arr.ndim == 3
 
     def test_read_nii_itk_backend(self) -> None:
-        arr, meta = read_img(TEST_NII, backend="itk")
+        arr, _ = read_img(TEST_NII, backend="itk")
         assert arr.ndim == 3
 
     def test_read_with_header(self) -> None:
-        arr, meta = read_img(TEST_NII, header=True)
+        _, meta = read_img(TEST_NII, header=True)
         assert meta.header is not None
 
     def test_read_with_desired_ornt(self) -> None:
-        arr, meta = read_img(TEST_NII, desired_ornt="LPI")
+        _, meta = read_img(TEST_NII, desired_ornt="LPI")
         assert meta.ornt == "LPI"
 
     def test_read_nib_coord_sys(self) -> None:
-        arr, meta = read_img(TEST_NII, coord_sys="nib")
+        _, meta = read_img(TEST_NII, coord_sys="nib")
         assert meta.coord_sys == "nib"
 
 
 class TestReadDicom:
     def test_read_dcm_dir(self) -> None:
-        arr, meta = read_img(TEST_DCM_DIR)
+        arr, _ = read_img(TEST_DCM_DIR)
         assert arr is not None and arr.size > 0
 
     def test_read_dcm_itk_backend(self) -> None:
-        arr, meta = read_img(TEST_DCM_DIR, backend="itk")
+        arr, _ = read_img(TEST_DCM_DIR, backend="itk")
         assert arr.ndim == 3
 
     def test_read_dcm_pdcm_backend(self) -> None:
-        arr, meta = read_img(TEST_DCM_DIR, backend="pdcm")
+        arr, _ = read_img(TEST_DCM_DIR, backend="pdcm")
         assert arr.ndim == 3
 
 
@@ -60,7 +60,7 @@ class TestSaveNifti:
         with tempfile.TemporaryDirectory() as tmpdir:
             out_path = os.path.join(tmpdir, "out.nii.gz")
             save_img(out_path, arr, meta)
-            arr2, meta2 = read_img(out_path)
+            arr2, _ = read_img(out_path)
             np.testing.assert_allclose(np.asarray(arr, dtype=float), np.asarray(arr2, dtype=float), atol=1e-5)
 
     def test_write_with_mkdir(self) -> None:
@@ -84,7 +84,7 @@ class TestSaveDicomDir:
         arr, meta = read_img(TEST_DCM_DIR)
         with tempfile.TemporaryDirectory() as tmpdir:
             save_dir(tmpdir, arr, meta)
-            arr2, meta2 = read_img(tmpdir)
+            arr2, _ = read_img(tmpdir)
             assert arr2.shape == arr.shape
 
 

@@ -12,7 +12,7 @@ def explicit_inds(
     stop = list(shape)
     stride = [1] * ndim
 
-    def update(i: int, k: int | slice) -> None:
+    def update(i: int, k: object) -> None:
         """Update start, stop, stride at index i based on k"""
         if isinstance(k, int):
             start[i], stop[i] = k, k + 1

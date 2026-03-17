@@ -8,4 +8,4 @@ from pydicom.uid import generate_uid
 MEDIO_ROOT_UID = "1.2.826.0.1.3680043.10.513."
 
 
-generate_uid = partial(generate_uid, prefix=MEDIO_ROOT_UID)
+generate_uid = partial(generate_uid, prefix=MEDIO_ROOT_UID)  # type: ignore[assignment]
