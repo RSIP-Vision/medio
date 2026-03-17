@@ -1,3 +1,11 @@
+from __future__ import annotations
+
+import os
+
+import numpy as np
+from numpy.typing import NDArray
+from typing_extensions import Self
+
 from medio.metadata.affine import Affine
 from medio.metadata.metadata import MetaData
 from medio.read_save import read_img, save_img
@@ -5,7 +13,16 @@ from medio.utils.explicit_slicing import explicit_inds
 
 
 class MedImg:
-    def __init__(self, np_image, metadata, filename=None, **kwargs):
+    np_image: NDArray[np.generic]
+    metadata: MetaData[object]
+
+    def __init__(
+        self,
+        np_image: NDArray[np.generic] | None,
+        metadata: MetaData[object] | None,
+        filename: str | os.PathLike[str] | None = None,
+        **kwargs: object,
+    ) -> None:
         """
         Class for a single medical image, represented by numpy array and metadata object - image affine, original
         orientation and coordinate system. The class allows performing operations on the image with respective update of
@@ -19,10 +36,10 @@ class MedImg:
         self.np_image = np_image
         self.metadata = metadata
 
-    def save(self, filename, **kwargs):
+    def save(self, filename: str | os.PathLike[str], **kwargs: object) -> None:
         save_img(filename, self.np_image, self.metadata, **kwargs)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: tuple[object, ...]) -> Self:
         """
         This method allows cropping and basic down-sampling:
         >>> mimg = MedImg(np_image, metadata)

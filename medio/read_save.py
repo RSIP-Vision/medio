@@ -1,15 +1,29 @@
+from __future__ import annotations
+
+import os
 from pathlib import Path
+
+import numpy as np
+from numpy.typing import NDArray
 
 from medio.backends.itk_io import ItkIO
 from medio.backends.nib_io import NibIO
 from medio.backends.pdcm_io import PdcmIO
 from medio.metadata.convert_nib_itk import inv_axcodes
+from medio.metadata.metadata import MetaData
 from medio.utils.files import is_nifti
 
 
 def read_img(
-    input_path, desired_ornt=None, backend=None, dtype=None, header=False, channels_axis=-1, coord_sys="itk", **kwargs
-):
+    input_path: str | os.PathLike[str],
+    desired_ornt: str | None = None,
+    backend: str | None = None,
+    dtype: np.dtype[np.generic] | type | None = None,
+    header: bool = False,
+    channels_axis: int | None = -1,
+    coord_sys: str | None = "itk",
+    **kwargs: object,
+) -> tuple[NDArray[np.generic], MetaData[object]]:
     """
     Read medical image with nibabel or itk
     :param input_path: str or os.PathLike, the input path of image file or a directory containing dicom series
@@ -57,17 +71,17 @@ def read_img(
 
 
 def save_img(
-    filename,
-    np_image,
-    metadata,
-    use_original_ornt=True,
-    backend=None,
-    dtype=None,
-    channels_axis=None,
-    mkdir=False,
-    parents=False,
-    **kwargs,
-):
+    filename: str | os.PathLike[str],
+    np_image: NDArray[np.generic],
+    metadata: MetaData[object],
+    use_original_ornt: bool = True,
+    backend: str | None = None,
+    dtype: np.dtype[np.generic] | type | None = None,
+    channels_axis: int | None = None,
+    mkdir: bool = False,
+    parents: bool = False,
+    **kwargs: object,
+) -> None:
     """
     Save numpy image with corresponding metadata to file
     :param filename: str or os.PathLike, the output filename
@@ -99,17 +113,17 @@ def save_img(
 
 
 def save_dir(
-    dirname,
-    np_image,
-    metadata,
-    use_original_ornt=True,
-    dtype=None,
-    channels_axis=None,
-    parents=False,
-    exist_ok=False,
-    allow_dcm_reorient=False,
-    **kwargs,
-):
+    dirname: str | os.PathLike[str],
+    np_image: NDArray[np.generic],
+    metadata: MetaData[object],
+    use_original_ornt: bool = True,
+    dtype: np.dtype[np.generic] | type | None = None,
+    channels_axis: int | None = None,
+    parents: bool = False,
+    exist_ok: bool = False,
+    allow_dcm_reorient: bool = False,
+    **kwargs: object,
+) -> None:
     """
     Save image as a dicom directory. See medio.backends.itk_io.ItkIO.save_dcm_dir documentation.
     dtype is equivalent to passing image_np.astype(dtype) if dtype is not None
