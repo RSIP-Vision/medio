@@ -1,19 +1,29 @@
-from typing import Union
+from __future__ import annotations
+
+import os
 
 import nibabel as nib
 import numpy as np
+from numpy.typing import NDArray
 
 from medio.metadata.affine import Affine
 from medio.metadata.metadata import MetaData
 
+NibImage = nib.spatialimages.SpatialImage
+
 
 class NibIO:
-    coord_sys = "nib"
+    coord_sys: str = "nib"
     RGB_DTYPE = np.dtype([("R", np.uint8), ("G", np.uint8), ("B", np.uint8)])
     RGBA_DTYPE = np.dtype([("R", np.uint8), ("G", np.uint8), ("B", np.uint8), ("A", np.uint8)])
 
     @staticmethod
-    def read_img(input_path, desired_axcodes=None, header=False, channels_axis=None):
+    def read_img(
+        input_path: str | os.PathLike[str],
+        desired_axcodes: tuple[str, ...] | str | None = None,
+        header: bool = False,
+        channels_axis: int | None = None,
+    ) -> tuple[NDArray[np.floating], MetaData[object]]:
         """
         Reads a NIFTI file and returns the image array and metadata
         :param input_path: path-like (str or pathlib.Path) of the image file to read
@@ -36,7 +46,13 @@ class NibIO:
         return img, metadata
 
     @staticmethod
-    def save_img(filename, img, metadata, use_original_ornt=True, channels_axis=None):
+    def save_img(
+        filename: str | os.PathLike[str],
+        img: NDArray[np.floating],
+        metadata: MetaData[object],
+        use_original_ornt: bool = True,
+        channels_axis: int | None = None,
+    ) -> None:
         """
         Saves the given image as a NIFTI file.
         :param filename: path-like output filename, including a '.nii.gz' or '.nii' suffix
@@ -56,7 +72,7 @@ class NibIO:
         nib.save(img_struct, filename)
 
     @staticmethod
-    def reorient(img_struct, desired_axcodes: Union[tuple, str, None]):
+    def reorient(img_struct: NibImage, desired_axcodes: tuple[str, ...] | str | None) -> NibImage:
         """Reorient a nibabel image to a desired orientation described by desired_axcodes strings tuple, for example
         ('L', 'P', 'I'). If desired_axcodes is None it returns the given img_struct"""
         if desired_axcodes is not None:
@@ -69,7 +85,7 @@ class NibIO:
         return img_struct
 
     @staticmethod
-    def unravel_array(array, channels_axis=-1):
+    def unravel_array(array: NDArray[np.generic], channels_axis: int = -1) -> NDArray[np.generic]:
         """Simplify array dtype if it is a structured data type. For example, if the array if of RGB dtype:
         np.dtype([('R', 'uint8'), ('G', 'uint8'), ('B', 'uint8')])
         Convert it into an array with dtype 'uint8' and 3 channels for RGB in an additional last dimension"""
@@ -79,7 +95,7 @@ class NibIO:
         return np.stack([array[field] for field in dtype.fields], axis=channels_axis)
 
     @staticmethod
-    def pack_channeled_img(img, channels_axis):
+    def pack_channeled_img(img: NDArray[np.uint8], channels_axis: int) -> NDArray[np.void]:
         dtype = img.dtype
         if not np.issubdtype(dtype, np.uint8):
             raise ValueError(f'RGB or RGBA images must have dtype "np.uint8", got: "{dtype}"')

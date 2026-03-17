@@ -1,9 +1,13 @@
+from __future__ import annotations
+
+import os
 from pathlib import Path
 
 import nibabel as nib
 import numpy as np
 import pydicom
 from dicom_numpy import combine_slices
+from numpy.typing import NDArray
 
 from medio.backends.nib_io import NibIO
 from medio.backends.pdcm_unpack_ds import unpack_dataset
@@ -14,22 +18,22 @@ from medio.utils.files import parse_series_uids
 
 
 class PdcmIO:
-    coord_sys = "itk"
+    coord_sys: str = "itk"
     # channels axes in the transposed image for pydicom and dicom-numpy. The actual axis is the first or the second
     # value of the tuple, according to the planar configuration (which is either 0 or 1)
-    DEFAULT_CHANNELS_AXES_PYDICOM = (0, -1)
-    DEFAULT_CHANNELS_AXES_DICOM_NUMPY = (0, 2)
+    DEFAULT_CHANNELS_AXES_PYDICOM: tuple[int, int] = (0, -1)
+    DEFAULT_CHANNELS_AXES_DICOM_NUMPY: tuple[int, int] = (0, 2)
 
     @staticmethod
     def read_img(
-        input_path,
-        desired_ornt=None,
-        header=False,
-        channels_axis=None,
-        globber="*",
-        allow_default_affine=False,
-        series=None,
-    ):
+        input_path: str | os.PathLike[str],
+        desired_ornt: str | None = None,
+        header: bool = False,
+        channels_axis: int | None = None,
+        globber: str = "*",
+        allow_default_affine: bool = False,
+        series: str | int | None = None,
+    ) -> tuple[NDArray[np.generic], MetaData[object]]:
         """
         Read a dicom file or folder (series) and return the numpy array and the corresponding metadata
         :param input_path: path-like object (str or pathlib.Path) of the file or directory to read
@@ -68,7 +72,12 @@ class PdcmIO:
         return img, metadata
 
     @staticmethod
-    def read_dcm_file(filename, header=False, allow_default_affine=False, channels_axis=None):
+    def read_dcm_file(
+        filename: str | os.PathLike[str],
+        header: bool = False,
+        allow_default_affine: bool = False,
+        channels_axis: int | None = None,
+    ) -> tuple[NDArray[np.generic], MetaData[object], bool]:
         """
         Read a single dicom file.
         Return the image array, metadata, and whether it has channels
@@ -93,7 +102,13 @@ class PdcmIO:
         return img, metadata, samples_per_pixel > 1
 
     @staticmethod
-    def read_dcm_dir(input_dir, header=False, globber="*", channels_axis=None, series=None):
+    def read_dcm_dir(
+        input_dir: str | os.PathLike[str],
+        header: bool = False,
+        globber: str = "*",
+        channels_axis: int | None = None,
+        series: str | int | None = None,
+    ) -> tuple[NDArray[np.generic], MetaData[object], bool]:
         """
         Reads a 3D dicom image: input path can be a file or directory (DICOM series).
         Return the image array, metadata, and whether it has channels
@@ -117,7 +132,11 @@ class PdcmIO:
         return img, metadata, samples_per_pixel > 1
 
     @staticmethod
-    def extract_slices(input_dir, globber="*", series=None):
+    def extract_slices(
+        input_dir: str | os.PathLike[str],
+        globber: str = "*",
+        series: str | int | None = None,
+    ) -> list[pydicom.Dataset]:
         """Extract slices from input_dir and return them sorted"""
         files = Path(input_dir).glob(globber)
         slices = [pydicom.dcmread(filename) for filename in files]
@@ -135,17 +154,17 @@ class PdcmIO:
         return slices
 
     @staticmethod
-    def aff2meta(affine):
+    def aff2meta(affine: NDArray[np.floating]) -> MetaData[None]:
         return MetaData(affine, coord_sys=PdcmIO.coord_sys)
 
     @staticmethod
     def move_channels_axis(
-        array,
-        samples_per_pixel,
-        channels_axis=None,
-        planar_configuration=None,
-        default_axes=DEFAULT_CHANNELS_AXES_PYDICOM,
-    ):
+        array: NDArray[np.generic],
+        samples_per_pixel: int,
+        channels_axis: int | None = None,
+        planar_configuration: int | None = None,
+        default_axes: tuple[int, int] = DEFAULT_CHANNELS_AXES_PYDICOM,
+    ) -> NDArray[np.generic]:
         """Move the channels axis from the original axis to the destined channels_axis"""
         if (samples_per_pixel == 1) or (channels_axis is None):
             # no rearrangement is needed
@@ -173,7 +192,11 @@ class PdcmIO:
         return np.moveaxis(array, orig_axis, channels_axis)
 
     @staticmethod
-    def reorient(img, metadata, desired_ornt):
+    def reorient(
+        img: NDArray[np.generic],
+        metadata: MetaData[object],
+        desired_ornt: str | None,
+    ) -> tuple[NDArray[np.generic], MetaData[object]]:
         """
         Reorient img array and affine (in the metadata) to desired_ornt (str) using nibabel.
         desired_ornt is in itk convention.
@@ -201,7 +224,13 @@ class PdcmIO:
         return img, metadata
 
     @staticmethod
-    def save_arr2dcm_file(output_filename, template_filename, img_arr, dtype=None, keep_rescale=False):
+    def save_arr2dcm_file(
+        output_filename: str | os.PathLike[str],
+        template_filename: str | os.PathLike[str],
+        img_arr: NDArray[np.generic],
+        dtype: np.dtype[np.generic] | str | None = None,
+        keep_rescale: bool = False,
+    ) -> None:
         """
         Writes a dicom single file image using template file, without the intensity transformation from template dataset
         unless keep_rescale is True

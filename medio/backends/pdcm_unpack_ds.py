@@ -1,20 +1,27 @@
 """
 This module is equivalent to dicom_numpy's module: combine_slices.py, but here for a single dicom dataset
 """
+from __future__ import annotations
 
 import logging
 
 import numpy as np
+import pydicom
 from dicom_numpy.combine_slices import (
     _extract_cosines,
     _requires_rescaling,
     _validate_image_orientation,
 )
+from numpy.typing import NDArray
 
 logger = logging.getLogger(__name__)
 
 
-def unpack_dataset(dataset, rescale=None, allow_default_affine=False):
+def unpack_dataset(
+    dataset: pydicom.Dataset,
+    rescale: bool | None = None,
+    allow_default_affine: bool = False,
+) -> tuple[NDArray[np.generic], NDArray[np.float32]]:
     """
     Given a pydicom dataset of a single image file return three-dimensional numpy array.
     Also calculate a 4x4 affine transformation matrix that converts the ijk-pixel-indices
@@ -79,7 +86,7 @@ def unpack_dataset(dataset, rescale=None, allow_default_affine=False):
     return voxels, transform
 
 
-def _unpack_pixel_array(dataset, rescale=None):
+def _unpack_pixel_array(dataset: pydicom.Dataset, rescale: bool | None = None) -> NDArray[np.generic]:
     voxels = dataset.pixel_array.T
 
     if rescale is None:
@@ -98,7 +105,7 @@ def _unpack_pixel_array(dataset, rescale=None):
     return voxels
 
 
-def _ijk_to_patient_xyz_transform_matrix(dataset):
+def _ijk_to_patient_xyz_transform_matrix(dataset: pydicom.Dataset) -> NDArray[np.float32]:
     image_orientation = dataset.ImageOrientationPatient
     row_cosine, column_cosine, _slice_cosine = _extract_cosines(image_orientation)
 

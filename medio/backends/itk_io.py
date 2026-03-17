@@ -1,9 +1,12 @@
+from __future__ import annotations
+
+import os
 from datetime import datetime
 from pathlib import Path
-from typing import Union
 
 import itk
 import numpy as np
+from numpy.typing import NDArray
 
 from medio.metadata.affine import Affine
 from medio.metadata.dcm_uid import generate_uid
@@ -13,24 +16,24 @@ from medio.utils.files import is_dicom, make_dir, parse_series_uids
 
 
 class ItkIO:
-    coord_sys = "itk"
-    DEFAULT_COMPONENTS_AXIS = 0  # in the transposed image
+    coord_sys: str = "itk"
+    DEFAULT_COMPONENTS_AXIS: int = 0  # in the transposed image
     # default image type:
-    dimension = 3
+    dimension: int = 3
     pixel_type = itk.ctype("short")  # signed short - int16
     image_type = itk.Image[pixel_type, dimension]
 
     @staticmethod
     def read_img(
-        input_path,
-        desired_axcodes=None,
-        header=False,
-        components_axis=None,
-        pixel_type=pixel_type,
-        fallback_only=True,
-        series=None,
-        private_tags=False,
-    ):
+        input_path: str | os.PathLike[str],
+        desired_axcodes: str | tuple[str, ...] | None = None,
+        header: bool = False,
+        components_axis: int | None = None,
+        pixel_type: type | None = pixel_type,
+        fallback_only: bool = True,
+        series: str | int | None = None,
+        private_tags: bool = False,
+    ) -> tuple[NDArray[np.generic], MetaData[object]]:
         """
         The main reader function, reads images and performs reorientation and unpacking
         :param input_path: path of image file or directory containing dicom series
@@ -92,14 +95,14 @@ class ItkIO:
 
     @staticmethod
     def save_img(
-        filename,
-        image_np,
-        metadata,
-        use_original_ornt=True,
-        components_axis=None,
-        allow_dcm_reorient=False,
-        compression=False,
-    ):
+        filename: str | os.PathLike[str],
+        image_np: NDArray[np.generic],
+        metadata: MetaData[object],
+        use_original_ornt: bool = True,
+        components_axis: int | None = None,
+        allow_dcm_reorient: bool = False,
+        compression: bool = False,
+    ) -> None:
         """
         Save an image file with itk
         :param filename: the filename to save, str or os.PathLike
@@ -126,13 +129,13 @@ class ItkIO:
 
     @staticmethod
     def prepare_image(
-        image_np,
-        metadata,
-        use_original_ornt,
-        components_axis=None,
-        is_dcm=False,
-        allow_dcm_reorient=False,
-    ):
+        image_np: NDArray[np.generic],
+        metadata: MetaData[object],
+        use_original_ornt: bool,
+        components_axis: int | None = None,
+        is_dcm: bool = False,
+        allow_dcm_reorient: bool = False,
+    ) -> object:
         """Prepare image for saving"""
         orig_coord_sys = metadata.coord_sys
         metadata.convert(ItkIO.coord_sys)
@@ -147,7 +150,7 @@ class ItkIO:
         return image
 
     @staticmethod
-    def prepare_dcm_array(image_np, is_vector=False):
+    def prepare_dcm_array(image_np: NDArray[np.generic], is_vector: bool = False) -> NDArray[np.generic]:
         """Change image_np to correct data type for saving a single dicom file"""
         if is_vector:
             dcm_dtypes = [np.uint8]
@@ -175,12 +178,12 @@ class ItkIO:
         )
 
     @staticmethod
-    def read_img_file(filename, pixel_type=None, fallback_only=False, imageio=None):
+    def read_img_file(filename: str, pixel_type: type | None = None, fallback_only: bool = False, imageio: object | None = None) -> object:
         """Common pixel types: itk.SS (int16), itk.US (uint16), itk.UC (uint8)"""
         return itk.imread(filename, pixel_type, fallback_only, imageio)
 
     @staticmethod
-    def read_img_file_long(filename, image_type=image_type):
+    def read_img_file_long(filename: str, image_type: type = image_type) -> tuple[object, str]:
         """Longer version of itk.imread that returns the itk image and io engine string"""
         reader = itk.ImageFileReader[image_type].New()
         reader.LoadPrivateTagsOn()
@@ -191,11 +194,11 @@ class ItkIO:
         return image, image_io
 
     @staticmethod
-    def save_img_file(image, filename, compression=False):
+    def save_img_file(image: object, filename: str, compression: bool = False) -> None:
         itk.imwrite(image, filename, compression)
 
     @staticmethod
-    def save_img_file_long(image, filename, compression=False):
+    def save_img_file_long(image: object, filename: str, compression: bool = False) -> None:
         image_type = type(image)
         writer = itk.ImageFileWriter[image_type].New()
         if compression:
@@ -206,7 +209,7 @@ class ItkIO:
         writer.Update()
 
     @staticmethod
-    def itk_img_to_array(img_itk):
+    def itk_img_to_array(img_itk: object) -> NDArray[np.generic]:
         """
         Swap the axes to the usual x, y, z convention in RAI orientation
         (originally z, y, x)
@@ -216,7 +219,7 @@ class ItkIO:
         return img_array
 
     @staticmethod
-    def array_to_itk_img(img_array, components_axis=None):
+    def array_to_itk_img(img_array: NDArray[np.generic], components_axis: int | None = None) -> object:
         """Set components_axis to not None for vector images, e.g. RGB"""
         is_vector = False
         if components_axis is not None:
@@ -227,26 +230,26 @@ class ItkIO:
         return img_itk
 
     @staticmethod
-    def unpack_img(img):
+    def unpack_img(img: object) -> tuple[NDArray[np.generic], Affine]:
         image_np = ItkIO.itk_img_to_array(img)
         affine = ItkIO.get_img_aff(img)
         return image_np, affine
 
     @staticmethod
-    def get_img_aff(img):
+    def get_img_aff(img: object) -> Affine:
         direction = itk.array_from_vnl_matrix(img.GetDirection().GetVnlMatrix().as_matrix())
         spacing = itk.array_from_vnl_vector(img.GetSpacing().GetVnlVector())
         origin = itk.array_from_vnl_vector(img.GetOrigin().GetVnlVector())
         return Affine(direction=direction, spacing=spacing, origin=origin)
 
     @staticmethod
-    def pack2img(image_np, affine, components_axis=None):
+    def pack2img(image_np: NDArray[np.generic], affine: Affine | NDArray[np.floating], components_axis: int | None = None) -> object:
         image = ItkIO.array_to_itk_img(image_np, components_axis)
         ItkIO.set_img_aff(image, affine)
         return image
 
     @staticmethod
-    def set_img_aff(image, affine):
+    def set_img_aff(image: object, affine: Affine | NDArray[np.floating]) -> None:
         if not isinstance(affine, Affine):
             affine = Affine(affine)
 
@@ -265,7 +268,7 @@ class ItkIO:
         image.SetDirection(direction)
 
     @staticmethod
-    def reorient(img, desired_orientation: Union[int, tuple, str, None]):
+    def reorient(img: object, desired_orientation: int | tuple[str, ...] | str | None) -> tuple[object, int | None]:
         if desired_orientation is None:
             return img, None
 
@@ -282,7 +285,7 @@ class ItkIO:
         return reoriented_itk_img, original_orientation_code
 
     @staticmethod
-    def read_dir(dirname, pixel_type=None, fallback_only=False, series=None, imageio=None):
+    def read_dir(dirname: str, pixel_type: type | None = None, fallback_only: bool = False, series: str | int | None = None, imageio: object | None = None) -> object:
         """
         Read a dicom directory. If there is more than one series in the directory an error is raised
         (unless the series argument is used properly).
@@ -293,7 +296,7 @@ class ItkIO:
         return itk.imread(filenames, pixel_type, fallback_only, imageio)
 
     @staticmethod
-    def extract_series(dirname, series=None):
+    def extract_series(dirname: str, series: str | int | None = None) -> list[str] | str:
         """Extract series filenames from the directory dirname"""
         names_generator = itk.GDCMSeriesFileNames.New()
         names_generator.SetDirectory(dirname)
@@ -309,16 +312,16 @@ class ItkIO:
 
     @staticmethod
     def save_dcm_dir(
-        dirname,
-        image_np,
-        metadata,
-        use_original_ornt=True,
-        components_axis=None,
-        parents=False,
-        exist_ok=False,
-        allow_dcm_reorient=False,
-        **kwargs,
-    ):
+        dirname: str | os.PathLike[str],
+        image_np: NDArray[np.generic],
+        metadata: MetaData[object],
+        use_original_ornt: bool = True,
+        components_axis: int | None = None,
+        parents: bool = False,
+        exist_ok: bool = False,
+        allow_dcm_reorient: bool = False,
+        **kwargs: object,
+    ) -> None:
         """
         Save a 3d numpy array image_np as a dicom series of 2d dicom slices in the directory dirname
         :param dirname: the directory to save in the files, str or pathlib.Path. If it exists - must be empty
@@ -357,7 +360,7 @@ class ItkIO:
         writer.Update()
 
     @staticmethod
-    def dcm_series_metadata(image, dirname, pattern="IM{}.dcm", metadata_dict=None):
+    def dcm_series_metadata(image: object, dirname: str | os.PathLike[str], pattern: str = "IM{}.dcm", metadata_dict: dict[str, str] | None = None) -> tuple[list[object], list[str]]:
         """
         Return dicom series metadata per slice and filenames
         :param image: the full itk image to be saved as dicom series
