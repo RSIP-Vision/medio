@@ -9,7 +9,7 @@ from medio.backends.nib_io import NibIO
 from medio.backends.pdcm_unpack_ds import unpack_dataset
 from medio.metadata.convert_nib_itk import inv_axcodes
 from medio.metadata.metadata import MetaData
-from medio.metadata.pdcm_ds import convert_ds, MultiFrameFileDataset
+from medio.metadata.pdcm_ds import MultiFrameFileDataset, convert_ds
 from medio.utils.files import parse_series_uids
 
 
@@ -68,9 +68,7 @@ class PdcmIO:
         return img, metadata
 
     @staticmethod
-    def read_dcm_file(
-        filename, header=False, allow_default_affine=False, channels_axis=None
-    ):
+    def read_dcm_file(filename, header=False, allow_default_affine=False, channels_axis=None):
         """
         Read a single dicom file.
         Return the image array, metadata, and whether it has channels
@@ -83,7 +81,7 @@ class PdcmIO:
             img, affine = combine_slices([ds])
         metadata = PdcmIO.aff2meta(affine)
         if header:
-            metadata.header = {str(key): ds[key] for key in ds.keys()}
+            metadata.header = {str(key): ds[key] for key in ds}
         samples_per_pixel = ds.SamplesPerPixel
         img = PdcmIO.move_channels_axis(
             img,
@@ -95,9 +93,7 @@ class PdcmIO:
         return img, metadata, samples_per_pixel > 1
 
     @staticmethod
-    def read_dcm_dir(
-        input_dir, header=False, globber="*", channels_axis=None, series=None
-    ):
+    def read_dcm_dir(input_dir, header=False, globber="*", channels_axis=None, series=None):
         """
         Reads a 3D dicom image: input path can be a file or directory (DICOM series).
         Return the image array, metadata, and whether it has channels
@@ -109,9 +105,7 @@ class PdcmIO:
         if header:
             # TODO: add header support, something like
             #  metdata.header = [{str(key): ds[key] for key in ds.keys()} for ds in slices]
-            raise NotImplementedError(
-                "header=True is currently not supported for a series"
-            )
+            raise NotImplementedError("header=True is currently not supported for a series")
         samples_per_pixel = slices[0].SamplesPerPixel
         img = PdcmIO.move_channels_axis(
             img,
@@ -132,7 +126,7 @@ class PdcmIO:
         datasets = {}
         for slc in slices:
             key = slc.SeriesInstanceUID
-            datasets[key] = datasets.get(key, []) + [slc]
+            datasets[key] = [*datasets.get(key, []), slc]
 
         series_uid = parse_series_uids(input_dir, datasets.keys(), series, globber)
         slices = datasets[series_uid]
@@ -159,9 +153,7 @@ class PdcmIO:
 
         # extract the original channels axis
         if planar_configuration not in [0, 1]:
-            raise ValueError(
-                f"Invalid Planar Configuration value: {planar_configuration}"
-            )
+            raise ValueError(f"Invalid Planar Configuration value: {planar_configuration}")
 
         orig_axis = default_axes[planar_configuration]
         flag = True  # original channels axis is assigned
@@ -209,9 +201,7 @@ class PdcmIO:
         return img, metadata
 
     @staticmethod
-    def save_arr2dcm_file(
-        output_filename, template_filename, img_arr, dtype=None, keep_rescale=False
-    ):
+    def save_arr2dcm_file(output_filename, template_filename, img_arr, dtype=None, keep_rescale=False):
         """
         Writes a dicom single file image using template file, without the intensity transformation from template dataset
         unless keep_rescale is True

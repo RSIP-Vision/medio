@@ -31,7 +31,7 @@ class MedImg:
         Ellipsis (...) is also supported
         """
         np_image = self.np_image[item]
-        start, stop, stride = explicit_inds(item, self.np_image.shape)
+        start, _stop, stride = explicit_inds(item, self.np_image.shape)
         affine = Affine(self.metadata.affine.copy())
         affine.origin = affine.index2coord(start)
         affine.spacing = affine.spacing * stride

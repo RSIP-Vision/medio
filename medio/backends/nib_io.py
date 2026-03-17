@@ -10,9 +10,7 @@ from medio.metadata.metadata import MetaData
 class NibIO:
     coord_sys = "nib"
     RGB_DTYPE = np.dtype([("R", np.uint8), ("G", np.uint8), ("B", np.uint8)])
-    RGBA_DTYPE = np.dtype(
-        [("R", np.uint8), ("G", np.uint8), ("B", np.uint8), ("A", np.uint8)]
-    )
+    RGBA_DTYPE = np.dtype([("R", np.uint8), ("G", np.uint8), ("B", np.uint8), ("A", np.uint8)])
 
     @staticmethod
     def read_img(input_path, desired_axcodes=None, header=False, channels_axis=None):
@@ -32,13 +30,9 @@ class NibIO:
         if channels_axis is not None:
             img = NibIO.unravel_array(img, channels_axis)
         affine = Affine(img_struct.affine)
-        metadata = MetaData(
-            affine=affine, orig_ornt=orig_ornt_str, coord_sys=NibIO.coord_sys
-        )
+        metadata = MetaData(affine=affine, orig_ornt=orig_ornt_str, coord_sys=NibIO.coord_sys)
         if header:
-            metadata.header = {
-                key: img_struct.header[key] for key in img_struct.header.keys()
-            }
+            metadata.header = {key: img_struct.header[key] for key in img_struct.header}
         return img, metadata
 
     @staticmethod
@@ -88,9 +82,7 @@ class NibIO:
     def pack_channeled_img(img, channels_axis):
         dtype = img.dtype
         if not np.issubdtype(dtype, np.uint8):
-            raise ValueError(
-                f'RGB or RGBA images must have dtype "np.uint8", got: "{dtype}"'
-            )
+            raise ValueError(f'RGB or RGBA images must have dtype "np.uint8", got: "{dtype}"')
         n_channels = img.shape[channels_axis]
         img = np.moveaxis(img, channels_axis, -1)
         r_channel = img[..., 0]
@@ -108,6 +100,4 @@ class NibIO:
             img_rgba["A"] = img[..., 3]
             return img_rgba
         else:
-            raise ValueError(
-                f"Invalid number of channels: {n_channels}, should be 3 (RGB) or 4 (RGBA)"
-            )
+            raise ValueError(f"Invalid number of channels: {n_channels}, should be 3 (RGB) or 4 (RGBA)")

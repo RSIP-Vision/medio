@@ -8,14 +8,7 @@ from medio.utils.files import is_nifti
 
 
 def read_img(
-    input_path,
-    desired_ornt=None,
-    backend=None,
-    dtype=None,
-    header=False,
-    channels_axis=-1,
-    coord_sys="itk",
-    **kwargs
+    input_path, desired_ornt=None, backend=None, dtype=None, header=False, channels_axis=-1, coord_sys="itk", **kwargs
 ):
     """
     Read medical image with nibabel or itk
@@ -49,16 +42,12 @@ def read_img(
         elif backend in ("pdcm", "pydicom"):
             reader, reader_sys = pdcm_reader_data
         else:
-            raise ValueError(
-                'The backend argument must be one of: "itk", "nib", "pdcm" (or "pydicom"), None'
-            )
+            raise ValueError('The backend argument must be one of: "itk", "nib", "pdcm" (or "pydicom"), None')
 
     if (coord_sys is not None) and (coord_sys != reader_sys):
         desired_ornt = inv_axcodes(desired_ornt)
 
-    np_image, metadata = reader(
-        input_path, desired_ornt, header, channels_axis, **kwargs
-    )
+    np_image, metadata = reader(input_path, desired_ornt, header, channels_axis, **kwargs)
 
     if dtype is not None:
         np_image = np_image.astype(dtype, copy=False)
@@ -77,7 +66,7 @@ def save_img(
     channels_axis=None,
     mkdir=False,
     parents=False,
-    **kwargs
+    **kwargs,
 ):
     """
     Save numpy image with corresponding metadata to file
@@ -94,10 +83,7 @@ def save_img(
     nib_writer = NibIO.save_img
     itk_writer = ItkIO.save_img
     if backend is None:
-        if is_nifti(filename, check_exist=False):
-            writer = nib_writer
-        else:
-            writer = itk_writer
+        writer = nib_writer if is_nifti(filename, check_exist=False) else itk_writer
     else:
         if backend == "nib":
             writer = nib_writer
@@ -122,7 +108,7 @@ def save_dir(
     parents=False,
     exist_ok=False,
     allow_dcm_reorient=False,
-    **kwargs
+    **kwargs,
 ):
     """
     Save image as a dicom directory. See medio.backends.itk_io.ItkIO.save_dcm_dir documentation.
@@ -131,13 +117,5 @@ def save_dir(
     if dtype is not None:
         np_image = np_image.astype(dtype, copy=False)
     ItkIO.save_dcm_dir(
-        dirname,
-        np_image,
-        metadata,
-        use_original_ornt,
-        channels_axis,
-        parents,
-        exist_ok,
-        allow_dcm_reorient,
-        **kwargs
+        dirname, np_image, metadata, use_original_ornt, channels_axis, parents, exist_ok, allow_dcm_reorient, **kwargs
     )

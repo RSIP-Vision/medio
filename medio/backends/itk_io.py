@@ -9,8 +9,7 @@ from medio.metadata.affine import Affine
 from medio.metadata.dcm_uid import generate_uid
 from medio.metadata.itk_orientation import itk_orientation_code
 from medio.metadata.metadata import MetaData, check_dcm_ornt
-from medio.utils.files import is_dicom, make_dir
-from medio.utils.files import parse_series_uids
+from medio.utils.files import is_dicom, make_dir, parse_series_uids
 
 
 class ItkIO:
@@ -55,22 +54,18 @@ class ItkIO:
         if input_path.is_dir():
             # We assume that the directory contains dicom series, do imageio will work, if used.
             if imageio is not None:
-                # we need to set the imageio to the reader, but with fallback_only=True it will not set it unless it fails
+                # fallback_only=True would skip the imageio, so disable it
                 fallback_only = False
-            img = ItkIO.read_dir(
-                str(input_path), pixel_type, fallback_only, series, imageio
-            )
+            img = ItkIO.read_dir(str(input_path), pixel_type, fallback_only, series, imageio)
         elif input_path.is_file():
             # If the input file is not a dicom (e.g. NIfTI), fallback to not use imageio.
             use_dicom_imageio = imageio is not None and imageio.CanReadFile(str(input_path))
             if use_dicom_imageio:
-                # we need to set the imageio to the reader, but with fallback_only=True it will not set it unless it fails
+                # fallback_only=True would skip the imageio, so disable it
                 fallback_only = False
             else:
                 imageio = None
-            img = ItkIO.read_img_file(
-                str(input_path), pixel_type, fallback_only, imageio
-            )
+            img = ItkIO.read_img_file(str(input_path), pixel_type, fallback_only, imageio)
         else:
             raise FileNotFoundError(f'No such file or directory: "{input_path}"')
 
@@ -82,27 +77,16 @@ class ItkIO:
             orig_ornt = metadata.ornt
             img, _ = ItkIO.reorient(img, desired_axcodes)
             image_np, affine = ItkIO.unpack_img(img)
-            metadata = MetaData(
-                affine=affine, orig_ornt=orig_ornt, coord_sys=ItkIO.coord_sys
-            )
+            metadata = MetaData(affine=affine, orig_ornt=orig_ornt, coord_sys=ItkIO.coord_sys)
         if header:
-            if imageio:
-                metadict = imageio.GetMetaDataDictionary()
-            else:
-                metadict = img.GetMetaDataDictionary()
-            metadata.header = {
-                key: metadict[key]
-                for key in metadict.GetKeys()
-                if not key.startswith("ITK_")
-            }
+            metadict = imageio.GetMetaDataDictionary() if imageio else img.GetMetaDataDictionary()
+            metadata.header = {key: metadict[key] for key in metadict.GetKeys() if not key.startswith("ITK_")}
 
         # TODO: consider unifying with PdcmIO.move_channels_axis
         n_components = img.GetNumberOfComponentsPerPixel()
         if (n_components > 1) and (components_axis is not None):
             # assert image_np.shape[ItkIO.DEFAULT_COMPONENTS_AXIS] == n_components
-            image_np = np.moveaxis(
-                image_np, ItkIO.DEFAULT_COMPONENTS_AXIS, components_axis
-            )
+            image_np = np.moveaxis(image_np, ItkIO.DEFAULT_COMPONENTS_AXIS, components_axis)
 
         return image_np, metadata
 
@@ -129,9 +113,7 @@ class ItkIO:
         """
         is_dcm = is_dicom(filename, check_exist=False)
         if is_dcm:
-            image_np = ItkIO.prepare_dcm_array(
-                image_np, is_vector=components_axis is not None
-            )
+            image_np = ItkIO.prepare_dcm_array(image_np, is_vector=components_axis is not None)
         image = ItkIO.prepare_image(
             image_np,
             metadata,
@@ -157,12 +139,8 @@ class ItkIO:
         desired_ornt = metadata.orig_ornt if use_original_ornt else None
         if is_dcm:
             # checking right-handed orientation before saving a dicom file/series
-            desired_ornt = check_dcm_ornt(
-                desired_ornt, metadata, allow_dcm_reorient=allow_dcm_reorient
-            )
-        image = ItkIO.pack2img(
-            image_np, metadata.affine, components_axis=components_axis
-        )
+            desired_ornt = check_dcm_ornt(desired_ornt, metadata, allow_dcm_reorient=allow_dcm_reorient)
+        image = ItkIO.pack2img(image_np, metadata.affine, components_axis=components_axis)
         if (desired_ornt is not None) and (desired_ornt != metadata.ornt):
             image, _ = ItkIO.reorient(image, desired_ornt)
         metadata.convert(orig_coord_sys)
@@ -178,7 +156,7 @@ class ItkIO:
             dcm_dtypes = [np.uint8, np.uint16]
             # if the image is 2d it can be signed
             if np.squeeze(image_np).ndim == 2:
-                dcm_dtypes = [np.int16] + dcm_dtypes
+                dcm_dtypes = [np.int16, *dcm_dtypes]
 
         if image_np.dtype in dcm_dtypes:
             return image_np
@@ -242,9 +220,7 @@ class ItkIO:
         """Set components_axis to not None for vector images, e.g. RGB"""
         is_vector = False
         if components_axis is not None:
-            img_array = np.moveaxis(
-                img_array, components_axis, ItkIO.DEFAULT_COMPONENTS_AXIS
-            )
+            img_array = np.moveaxis(img_array, components_axis, ItkIO.DEFAULT_COMPONENTS_AXIS)
             is_vector = True
         # copy is crucial for the ordering
         img_itk = itk.image_from_array(img_array.T.copy(), is_vector=is_vector)
@@ -258,9 +234,7 @@ class ItkIO:
 
     @staticmethod
     def get_img_aff(img):
-        direction = itk.array_from_vnl_matrix(
-            img.GetDirection().GetVnlMatrix().as_matrix()
-        )
+        direction = itk.array_from_vnl_matrix(img.GetDirection().GetVnlMatrix().as_matrix())
         spacing = itk.array_from_vnl_vector(img.GetSpacing().GetVnlVector())
         origin = itk.array_from_vnl_vector(img.GetOrigin().GetVnlVector())
         return Affine(direction=direction, spacing=spacing, origin=origin)
@@ -308,9 +282,7 @@ class ItkIO:
         return reoriented_itk_img, original_orientation_code
 
     @staticmethod
-    def read_dir(
-        dirname, pixel_type=None, fallback_only=False, series=None, imageio=None
-    ):
+    def read_dir(dirname, pixel_type=None, fallback_only=False, series=None, imageio=None):
         """
         Read a dicom directory. If there is more than one series in the directory an error is raised
         (unless the series argument is used properly).
@@ -425,11 +397,7 @@ class ItkIO:
         mdict["0018|0088"] = str(spacing[2])
         # Image Orientation (Patient)
         orientation_str = "\\".join(
-            [
-                str(image.GetDirection().GetVnlMatrix().get(i, j))
-                for j in range(2)
-                for i in range(3)
-            ]
+            [str(image.GetDirection().GetVnlMatrix().get(i, j)) for j in range(2) for i in range(3)]
         )
         mdict["0020|0037"] = orientation_str
         # Patient Position
