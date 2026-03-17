@@ -45,6 +45,7 @@ test = [
 ]
 dev = [
     "ruff>=0.11",
+    "ty>=0.0.23",
 ]
 
 [project.urls]
@@ -67,9 +68,6 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM", "TCH", "RUF"]
 
 [tool.ruff.format]
 quote-style = "double"
-
-[tool.ty]
-python-version = "3.9"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
