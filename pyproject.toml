@@ -6,7 +6,7 @@ authors = [
     { name = "RSIP Vision", email = "info@rsipvision.com" },
     { name = "Jonathan Daniel", email = "jonathand655@gmail.com" },
 ]
-requires-python = "~=3.7"
+requires-python = ">=3.9"
 readme = "README.md"
 license = "Apache-2.0"
 keywords = ["medical-images", "IO", "itk", "nibabel", "pydicom"]
@@ -19,21 +19,32 @@ classifiers = [
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
     "Topic :: Scientific/Engineering :: Image Processing",
     "Topic :: Scientific/Engineering :: Medical Science Apps.",
     "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
 ]
-dependencies = ["itk", "nibabel", "pydicom", "dicom-numpy"]
+dependencies = [
+    "itk",
+    "nibabel",
+    "numpy",
+    "pydicom",
+    "dicom-numpy",
+    "typing_extensions>=4.0",
+]
 
-[project.optional-dependencies]
+[dependency-groups]
 test = [
-    "pytest>=8.4.2,<9; python_version >= '3.9'",
-    "pytest<8.4.2; python_version < '3.9'",
+    "pytest>=8",
+]
+dev = [
+    "ruff>=0.11",
 ]
 
 [project.urls]
@@ -41,5 +52,21 @@ Repository = "https://github.com/RSIP-Vision/medio"
 "Bug Tracker" = "https://github.com/RSIP-Vision/medio/issues"
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["uv_build>=0.7.2,<0.8"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-root = ""
+
+[tool.ruff]
+target-version = "py39"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "TCH", "RUF"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
