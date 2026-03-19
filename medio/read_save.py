@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from pathlib import Path
+from typing import TYPE_CHECKING, Any, Literal, overload
 
 from medio.backends.itk_io import ItkIO
 from medio.backends.nib_io import NibIO
@@ -6,17 +9,55 @@ from medio.backends.pdcm_io import PdcmIO
 from medio.metadata.convert_nib_itk import inv_axcodes
 from medio.utils.files import is_nifti
 
+if TYPE_CHECKING:
+    import os
+
+    import numpy as np
+    from numpy.typing import NDArray
+
+    from medio.metadata.metadata import CoordSys, HeaderDict, MetaData
+
+ReadBackend = Literal["itk", "nib", "pdcm", "pydicom"]
+WriteBackend = Literal["itk", "nib"]
+
+
+@overload
+def read_img(
+    input_path: str | os.PathLike[str],
+    desired_ornt: str | None = ...,
+    backend: ReadBackend | None = ...,
+    dtype: np.dtype[np.generic] | type | None = ...,
+    *,
+    header: Literal[True],
+    channels_axis: int | None = ...,
+    coord_sys: CoordSys | None = ...,
+    **kwargs: Any,
+) -> tuple[NDArray[np.generic], MetaData[HeaderDict]]: ...
+
+
+@overload
+def read_img(
+    input_path: str | os.PathLike[str],
+    desired_ornt: str | None = ...,
+    backend: ReadBackend | None = ...,
+    dtype: np.dtype[np.generic] | type | None = ...,
+    header: bool = ...,
+    channels_axis: int | None = ...,
+    coord_sys: CoordSys | None = ...,
+    **kwargs: Any,
+) -> tuple[NDArray[np.generic], MetaData[object]]: ...
+
 
 def read_img(
-    input_path,
-    desired_ornt=None,
-    backend=None,
-    dtype=None,
-    header=False,
-    channels_axis=-1,
-    coord_sys="itk",
-    **kwargs
-):
+    input_path: str | os.PathLike[str],
+    desired_ornt: str | None = None,
+    backend: ReadBackend | None = None,
+    dtype: np.dtype[np.generic] | type | None = None,
+    header: bool = False,
+    channels_axis: int | None = -1,
+    coord_sys: CoordSys | None = "itk",
+    **kwargs: Any,
+) -> tuple[NDArray[np.generic], MetaData[object] | MetaData[HeaderDict]]:
     """
     Read medical image with nibabel or itk
     :param input_path: str or os.PathLike, the input path of image file or a directory containing dicom series
@@ -49,16 +90,12 @@ def read_img(
         elif backend in ("pdcm", "pydicom"):
             reader, reader_sys = pdcm_reader_data
         else:
-            raise ValueError(
-                'The backend argument must be one of: "itk", "nib", "pdcm" (or "pydicom"), None'
-            )
+            raise ValueError('The backend argument must be one of: "itk", "nib", "pdcm" (or "pydicom"), None')
 
     if (coord_sys is not None) and (coord_sys != reader_sys):
         desired_ornt = inv_axcodes(desired_ornt)
 
-    np_image, metadata = reader(
-        input_path, desired_ornt, header, channels_axis, **kwargs
-    )
+    np_image, metadata = reader(input_path, desired_ornt, header, channels_axis, **kwargs)
 
     if dtype is not None:
         np_image = np_image.astype(dtype, copy=False)
@@ -68,17 +105,17 @@ def read_img(
 
 
 def save_img(
-    filename,
-    np_image,
-    metadata,
-    use_original_ornt=True,
-    backend=None,
-    dtype=None,
-    channels_axis=None,
-    mkdir=False,
-    parents=False,
-    **kwargs
-):
+    filename: str | os.PathLike[str],
+    np_image: NDArray[np.generic],
+    metadata: MetaData[Any],
+    use_original_ornt: bool = True,
+    backend: WriteBackend | None = None,
+    dtype: np.dtype[np.generic] | type | None = None,
+    channels_axis: int | None = None,
+    mkdir: bool = False,
+    parents: bool = False,
+    **kwargs: Any,
+) -> None:
     """
     Save numpy image with corresponding metadata to file
     :param filename: str or os.PathLike, the output filename
@@ -94,10 +131,7 @@ def save_img(
     nib_writer = NibIO.save_img
     itk_writer = ItkIO.save_img
     if backend is None:
-        if is_nifti(filename, check_exist=False):
-            writer = nib_writer
-        else:
-            writer = itk_writer
+        writer = nib_writer if is_nifti(filename, check_exist=False) else itk_writer
     else:
         if backend == "nib":
             writer = nib_writer
@@ -113,17 +147,17 @@ def save_img(
 
 
 def save_dir(
-    dirname,
-    np_image,
-    metadata,
-    use_original_ornt=True,
-    dtype=None,
-    channels_axis=None,
-    parents=False,
-    exist_ok=False,
-    allow_dcm_reorient=False,
-    **kwargs
-):
+    dirname: str | os.PathLike[str],
+    np_image: NDArray[np.generic],
+    metadata: MetaData[Any],
+    use_original_ornt: bool = True,
+    dtype: np.dtype[np.generic] | type | None = None,
+    channels_axis: int | None = None,
+    parents: bool = False,
+    exist_ok: bool = False,
+    allow_dcm_reorient: bool = False,
+    **kwargs: Any,
+) -> None:
     """
     Save image as a dicom directory. See medio.backends.itk_io.ItkIO.save_dcm_dir documentation.
     dtype is equivalent to passing image_np.astype(dtype) if dtype is not None
@@ -131,13 +165,5 @@ def save_dir(
     if dtype is not None:
         np_image = np_image.astype(dtype, copy=False)
     ItkIO.save_dcm_dir(
-        dirname,
-        np_image,
-        metadata,
-        use_original_ornt,
-        channels_axis,
-        parents,
-        exist_ok,
-        allow_dcm_reorient,
-        **kwargs
+        dirname, np_image, metadata, use_original_ornt, channels_axis, parents, exist_ok, allow_dcm_reorient, **kwargs
     )

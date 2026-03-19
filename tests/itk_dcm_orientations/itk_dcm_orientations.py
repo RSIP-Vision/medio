@@ -4,15 +4,15 @@ import itk
 import numpy as np
 import pandas as pd
 
-from tests.itk_dcm_orientations.orientations_utils import (
-    ornt_list,
-    ornt_direction_dict,
-    is_right_handed_ornt,
-    direction2ornt,
-)
 from tests.itk_dcm_orientations.itk_utils import (
-    set_image_direction,
     get_image_direction,
+    set_image_direction,
+)
+from tests.itk_dcm_orientations.orientations_utils import (
+    direction2ornt,
+    is_right_handed_ornt,
+    ornt_direction_dict,
+    ornt_list,
 )
 
 
@@ -26,10 +26,7 @@ def get_saved_ornt(image, desired_ornt, remove=True):
         os.remove(filename)
     saved_direction = get_image_direction(saved_image)
     is_equal = np.array_equal(saved_direction, desired_direction)
-    if is_equal:
-        saved_ornt = desired_ornt
-    else:
-        saved_ornt = direction2ornt(saved_direction)
+    saved_ornt = desired_ornt if is_equal else direction2ornt(saved_direction)
     return saved_ornt, is_equal
 
 
@@ -54,15 +51,11 @@ df = pd.DataFrame(
 for ornt in ornt_list:
     state_dict = dict.fromkeys(df.columns)
     state_dict["Orientation"] = ornt
-    state_dict["Right/Left-handed orientation"] = (
-        "R" if is_right_handed_ornt(ornt) else "L"
-    )
+    state_dict["Right/Left-handed orientation"] = "R" if is_right_handed_ornt(ornt) else "L"
     # test 3d dicom
     state_dict["Saved orientation"], state_dict["Success"] = get_saved_ornt(img, ornt)
     # test 3d RGB dicom
-    state_dict["RGB saved orientation"], state_dict["RGB success"] = get_saved_ornt(
-        img_rgb, ornt
-    )
+    state_dict["RGB saved orientation"], state_dict["RGB success"] = get_saved_ornt(img_rgb, ornt)
     df = df.append(state_dict, ignore_index=True)
 
 df.sort_values("Right/Left-handed orientation", ascending=False, inplace=True)

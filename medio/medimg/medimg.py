@@ -1,11 +1,31 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
+
 from medio.metadata.affine import Affine
 from medio.metadata.metadata import MetaData
 from medio.read_save import read_img, save_img
 from medio.utils.explicit_slicing import explicit_inds
 
+if TYPE_CHECKING:
+    import os
+
+    import numpy as np
+    from numpy.typing import NDArray
+    from typing_extensions import Self
+
 
 class MedImg:
-    def __init__(self, np_image, metadata, filename=None, **kwargs):
+    np_image: NDArray[np.generic]
+    metadata: MetaData[Any]
+
+    def __init__(
+        self,
+        np_image: NDArray[np.generic] | None,
+        metadata: MetaData[Any] | None,
+        filename: str | os.PathLike[str] | None = None,
+        **kwargs: Any,
+    ) -> None:
         """
         Class for a single medical image, represented by numpy array and metadata object - image affine, original
         orientation and coordinate system. The class allows performing operations on the image with respective update of
@@ -17,12 +37,12 @@ class MedImg:
         if filename is not None:
             np_image, metadata = read_img(filename, **kwargs)
         self.np_image = np_image
-        self.metadata = metadata
+        self.metadata = metadata  # type: ignore[assignment]
 
-    def save(self, filename, **kwargs):
+    def save(self, filename: str | os.PathLike[str], **kwargs: Any) -> None:
         save_img(filename, self.np_image, self.metadata, **kwargs)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: tuple[object, ...]) -> Self:
         """
         This method allows cropping and basic down-sampling:
         >>> mimg = MedImg(np_image, metadata)
@@ -31,9 +51,9 @@ class MedImg:
         Ellipsis (...) is also supported
         """
         np_image = self.np_image[item]
-        start, stop, stride = explicit_inds(item, self.np_image.shape)
+        start, _stop, stride = explicit_inds(item, self.np_image.shape)
         affine = Affine(self.metadata.affine.copy())
         affine.origin = affine.index2coord(start)
         affine.spacing = affine.spacing * stride
         metadata = MetaData(affine, self.metadata.orig_ornt, self.metadata.coord_sys)
-        return MedImg(np_image, metadata)
+        return MedImg(np_image, metadata)  # type: ignore[return-value]

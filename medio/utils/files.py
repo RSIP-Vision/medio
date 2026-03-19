@@ -1,8 +1,19 @@
+from __future__ import annotations
+
+import os
 import pprint
 from pathlib import Path
+from typing import TYPE_CHECKING, Union
+
+from typing_extensions import TypeGuard
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+PathLike = Union[os.PathLike[str], str]
 
 
-def is_file_suffix(filename, suffixes, check_exist=True):
+def is_file_suffix(filename: PathLike, suffixes: tuple[str, ...], check_exist: bool = True) -> bool:
     """
     is_file + check for suffix
     :param filename: pathlike object
@@ -15,7 +26,7 @@ def is_file_suffix(filename, suffixes, check_exist=True):
     return str(filename).endswith(suffixes)
 
 
-def is_nifti(filename, check_exist=True):
+def is_nifti(filename: PathLike, check_exist: bool = True) -> TypeGuard[PathLike]:
     return is_file_suffix(
         filename,
         (".nii.gz", ".nii", ".img.gz", ".img", ".hdr"),
@@ -23,13 +34,11 @@ def is_nifti(filename, check_exist=True):
     )
 
 
-def is_dicom(filename, check_exist=True):
-    return is_file_suffix(
-        filename, (".dcm", ".dicom", ".DCM", ".DICOM"), check_exist=check_exist
-    )
+def is_dicom(filename: PathLike, check_exist: bool = True) -> TypeGuard[PathLike]:
+    return is_file_suffix(filename, (".dcm", ".dicom", ".DCM", ".DICOM"), check_exist=check_exist)
 
 
-def make_empty_dir(dir_path, parents=False):
+def make_empty_dir(dir_path: PathLike, parents: bool = False) -> None:
     """Make an empty directory. If it exists - check that it is empty"""
     dir_path = Path(dir_path)
     try:
@@ -44,29 +53,33 @@ def make_empty_dir(dir_path, parents=False):
             raise FileExistsError(f'The directory "{dir_path}" is not empty')
 
 
-def make_dir(dir_path, parents=False, exist_ok=False):
+def make_dir(dir_path: PathLike, parents: bool = False, exist_ok: bool = False) -> None:
     if exist_ok:
         Path(dir_path).mkdir(parents=parents, exist_ok=exist_ok)
     else:
         make_empty_dir(dir_path, parents)
 
 
-def parse_series_uids(input_dir, series_uids, series=None, globber=None):
+def parse_series_uids(
+    input_dir: PathLike,
+    series_uids: Iterable[str],
+    series: str | int | None = None,
+    globber: str | None = None,
+) -> str:
     """Receive an input dir, an iterable of series UIDs, and a series (UID string or int),
     return a series uid according to series_uids and series"""
     keys = sorted(series_uids)
     num_series = len(keys)
     if num_series == 0:
         raise FileNotFoundError(
-            f'No DICOMs in:\n"{input_dir}"'
-            + (f'\nwith globber="{globber}"' if globber is not None else "")
+            f'No DICOMs in:\n"{input_dir}"' + (f'\nwith globber="{globber}"' if globber is not None else "")
         )
 
     if num_series == 1:
         return keys[0]
 
     # if there is more than a single series
-    if num_series > 1:
+    else:
         if series is None:
             raise ValueError(
                 f'The directory: "{input_dir}"\n'
@@ -80,10 +93,5 @@ def parse_series_uids(input_dir, series_uids, series=None, globber=None):
             return keys[series]
         else:
             if series not in keys:
-                raise ValueError(
-                    "The series:\n"
-                    f"'{series}'\n"
-                    "is not one of the following:"
-                    f"\n{pprint.pformat(keys)}"
-                )
+                raise ValueError(f"The series:\n'{series}'\nis not one of the following:\n{pprint.pformat(keys)}")
             return series

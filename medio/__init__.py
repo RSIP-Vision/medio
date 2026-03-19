@@ -1,8 +1,12 @@
+from __future__ import annotations
+
+from importlib.metadata import version
+
+from medio.medimg import MedImg
 from medio.metadata.affine import Affine
-from medio.metadata.metadata import MetaData
-from medio.read_save import read_img, save_img, save_dir
-from medio import backends, metadata, medimg, utils
+from medio.metadata.metadata import CoordSys, MetaData
+from medio.read_save import read_img, save_dir, save_img
 
-__version__ = "0.4.2"
+__version__ = version("medio")
 
-__all__ = ["read_img", "save_img", "save_dir", "MetaData", "Affine", "__version__"]
+__all__ = ["Affine", "CoordSys", "MedImg", "MetaData", "__version__", "read_img", "save_dir", "save_img"]

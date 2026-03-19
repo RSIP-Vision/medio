@@ -1,19 +1,31 @@
 """
 This module is equivalent to dicom_numpy's module: combine_slices.py, but here for a single dicom dataset
 """
+
+from __future__ import annotations
+
 import logging
+from typing import TYPE_CHECKING
 
 import numpy as np
 from dicom_numpy.combine_slices import (
-    _validate_image_orientation,
     _extract_cosines,
     _requires_rescaling,
+    _validate_image_orientation,
 )
+
+if TYPE_CHECKING:
+    import pydicom
+    from numpy.typing import NDArray
 
 logger = logging.getLogger(__name__)
 
 
-def unpack_dataset(dataset, rescale=None, allow_default_affine=False):
+def unpack_dataset(
+    dataset: pydicom.Dataset,
+    rescale: bool | None = None,
+    allow_default_affine: bool = False,
+) -> tuple[NDArray[np.generic], NDArray[np.float32]]:
     """
     Given a pydicom dataset of a single image file return three-dimensional numpy array.
     Also calculate a 4x4 affine transformation matrix that converts the ijk-pixel-indices
@@ -72,13 +84,13 @@ def unpack_dataset(dataset, rescale=None, allow_default_affine=False):
         if allow_default_affine:
             transform = np.eye(4)
         else:
-            raise AttributeError(str(e) + "\nTry using: allow_default_affine=True")
+            raise AttributeError(str(e) + "\nTry using: allow_default_affine=True") from e
 
     voxels = _unpack_pixel_array(dataset, rescale)
     return voxels, transform
 
 
-def _unpack_pixel_array(dataset, rescale=None):
+def _unpack_pixel_array(dataset: pydicom.Dataset, rescale: bool | None = None) -> NDArray[np.generic]:
     voxels = dataset.pixel_array.T
 
     if rescale is None:
@@ -97,9 +109,9 @@ def _unpack_pixel_array(dataset, rescale=None):
     return voxels
 
 
-def _ijk_to_patient_xyz_transform_matrix(dataset):
+def _ijk_to_patient_xyz_transform_matrix(dataset: pydicom.Dataset) -> NDArray[np.float32]:
     image_orientation = dataset.ImageOrientationPatient
-    row_cosine, column_cosine, slice_cosine = _extract_cosines(image_orientation)
+    row_cosine, column_cosine, _slice_cosine = _extract_cosines(image_orientation)
 
     row_spacing, column_spacing = dataset.PixelSpacing
     # slice_spacing = dataset.get('SpacingBetweenSlices', 0)
@@ -108,9 +120,7 @@ def _ijk_to_patient_xyz_transform_matrix(dataset):
 
     transform[:3, 0] = row_cosine * column_spacing
     transform[:3, 1] = column_cosine * row_spacing
-    transform[:3, 2] = (
-        np.array(dataset.slice_position(-1)) - dataset.slice_position(0)
-    ) / (dataset.NumberOfFrames - 1)
+    transform[:3, 2] = (np.array(dataset.slice_position(-1)) - dataset.slice_position(0)) / (dataset.NumberOfFrames - 1)
     # transform[:3, 2] = slice_cosine * slice_spacing
 
     transform[:3, 3] = dataset.ImagePositionPatient

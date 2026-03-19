@@ -1,4 +1,10 @@
-def explicit_inds(key, shape):
+from __future__ import annotations
+
+
+def explicit_inds(
+    key: tuple[object, ...],
+    shape: tuple[int, ...],
+) -> tuple[list[int], list[int], list[int]]:
     """Make getitem key explicit in the context of numpy ndarrays basic slicing and indexing"""
     ndim = len(shape)
     # set defaults
@@ -6,7 +12,7 @@ def explicit_inds(key, shape):
     stop = list(shape)
     stride = [1] * ndim
 
-    def update(i, k):
+    def update(i: int, k: object) -> None:
         """Update start, stop, stride at index i based on k"""
         if isinstance(k, int):
             start[i], stop[i] = k, k + 1
