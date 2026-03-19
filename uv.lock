@@ -289,7 +289,7 @@ wheels = [
 
 [[package]]
 name = "medio"
-version = "0.4.3"
+version = "0.5.0"
 source = { editable = "." }
 dependencies = [
     { name = "dicom-numpy" },
@@ -311,10 +311,6 @@ dev = [
     { name = "ruff" },
     { name = "ty" },
 ]
-test = [
-    { name = "pytest", version = "8.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
-    { name = "pytest", version = "9.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
-]
 
 [package.metadata]
 requires-dist = [
@@ -332,7 +328,6 @@ dev = [
     { name = "ruff", specifier = ">=0.11" },
     { name = "ty", specifier = ">=0.0.23" },
 ]
-test = [{ name = "pytest", specifier = ">=8" }]
 
 [[package]]
 name = "nibabel"
