@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar, Literal
 
-import nibabel as nib
+import nibabel.spatialimages
 import numpy as np
 import pydicom
 from dicom_numpy import combine_slices
@@ -213,7 +213,7 @@ class PdcmIO:
         orig_ornt = metadata.ornt
         desired_ornt = inv_axcodes(desired_ornt)
         # use nibabel for the reorientation
-        img_struct = nib.spatialimages.SpatialImage(img, metadata.affine)
+        img_struct = nibabel.spatialimages.SpatialImage(img, metadata.affine)
         reoriented_img_struct = NibIO.reorient(img_struct, desired_ornt)
 
         img = np.asanyarray(reoriented_img_struct.dataobj)

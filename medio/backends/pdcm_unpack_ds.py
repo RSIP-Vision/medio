@@ -1,6 +1,7 @@
 """
 This module is equivalent to dicom_numpy's module: combine_slices.py, but here for a single dicom dataset
 """
+
 from __future__ import annotations
 
 import logging

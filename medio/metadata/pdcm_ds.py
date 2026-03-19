@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from pydicom.dataset import FileDataset
-from typing_extensions import override
 
 if TYPE_CHECKING:
     from pydicom.valuerep import DSfloat
@@ -28,38 +27,31 @@ class MultiFrameFileDataset(FileDataset):
     """This class enables shorter access to basic properties of pydicom dataset of a certain type"""
 
     @property
-    @override
-    def ImageOrientationPatient(self) -> list[DSfloat]:  # type: ignore[override]
+    def ImageOrientationPatient(self) -> list[DSfloat]:
         return self.SharedFunctionalGroupsSequence[0].PlaneOrientationSequence[0].ImageOrientationPatient
 
     @property
-    @override
-    def PixelSpacing(self) -> list[DSfloat]:  # type: ignore[override]
+    def PixelSpacing(self) -> list[DSfloat]:
         return self.SharedFunctionalGroupsSequence[0].PixelMeasuresSequence[0].PixelSpacing
 
     @property
-    @override
-    def SpacingBetweenSlices(self) -> DSfloat:  # type: ignore[override]
+    def SpacingBetweenSlices(self) -> DSfloat:
         return self.SharedFunctionalGroupsSequence[0].PixelMeasuresSequence[0].SpacingBetweenSlices
 
     @property
-    @override
-    def SliceThickness(self) -> DSfloat:  # type: ignore[override]
+    def SliceThickness(self) -> DSfloat:
         return self.SharedFunctionalGroupsSequence[0].PixelMeasuresSequence[0].SliceThickness
 
     @property
-    @override
-    def RescaleIntercept(self) -> DSfloat:  # type: ignore[override]
+    def RescaleIntercept(self) -> DSfloat:
         return self.SharedFunctionalGroupsSequence[0].PixelValueTransformationSequence[0].RescaleIntercept
 
     @property
-    @override
-    def RescaleSlope(self) -> DSfloat:  # type: ignore[override]
+    def RescaleSlope(self) -> DSfloat:
         return self.SharedFunctionalGroupsSequence[0].PixelValueTransformationSequence[0].RescaleSlope
 
     @property
-    @override
-    def ImagePositionPatient(self) -> list[DSfloat]:  # type: ignore[override]
+    def ImagePositionPatient(self) -> list[DSfloat]:
         """Note: this property returns only the position of the first slice"""
         return self.PerFrameFunctionalGroupsSequence[0].PlanePositionSequence[0].ImagePositionPatient
 

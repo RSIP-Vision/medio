@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pydicom
+import pydicom.dataset
 
 from medio.metadata.pdcm_ds import MultiFrameFileDataset, convert_ds
 

@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar, Literal
 
 import itk
+import itk.support.types as itkt
 import numpy as np
 
 from medio.metadata.affine import Affine
@@ -33,7 +34,7 @@ class ItkIO:
         desired_axcodes: str | tuple[str, ...] | None = None,
         header: bool = False,
         components_axis: int | None = None,
-        pixel_type: type | None = pixel_type,
+        pixel_type: itkt.PixelTypes | None = pixel_type,
         fallback_only: bool = True,
         series: str | int | None = None,
         private_tags: bool = False,
@@ -184,7 +185,7 @@ class ItkIO:
     @staticmethod
     def read_img_file(
         filename: str,
-        pixel_type: type | None = None,
+        pixel_type: itkt.PixelTypes | None = None,
         fallback_only: bool = False,
         imageio: object | None = None,
     ) -> object:
@@ -300,7 +301,7 @@ class ItkIO:
     @staticmethod
     def read_dir(
         dirname: str,
-        pixel_type: type | None = None,
+        pixel_type: itk.itkCType | None = None,
         fallback_only: bool = False,
         series: str | int | None = None,
         imageio: object | None = None,

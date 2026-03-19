@@ -27,17 +27,17 @@ Usage
 Works both ways: itk -> nib and nib -> itk, the usage is the same:
 >>> new_affine, new_axcodes = convert_nib_itk(affine, axcodes)
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, overload
 
 import numpy as np
+from numpy.typing import NDArray
+from typing_extensions import TypeVar, TypeVarTuple, Unpack
 
 from medio.metadata.affine import Affine
 from medio.utils.two_way_dict import TwoWayDict
-
-if TYPE_CHECKING:
-    from numpy.typing import NDArray
 
 # store compactly axis directions codes
 axes_inv = TwoWayDict()
@@ -68,7 +68,10 @@ def inv_axcodes(axcodes: str | None) -> str | None:
     return new_axcodes
 
 
-def convert_affine(affine: NDArray[np.floating] | Affine) -> NDArray[np.floating] | Affine:
+AffineOrNdarray = TypeVar("AffineOrNdarray", Affine, NDArray[np.floating])
+
+
+def convert_affine(affine: AffineOrNdarray) -> AffineOrNdarray:
     # conversion matrix of the affine from itk to nibabel and vice versa
     convert_aff_mat = np.diag([-1, -1, 1, 1])
     # for 2d image:
@@ -76,36 +79,35 @@ def convert_affine(affine: NDArray[np.floating] | Affine) -> NDArray[np.floating
         convert_aff_mat = np.diag([-1, -1, 1])
     new_affine = convert_aff_mat @ affine
     if isinstance(affine, Affine):
-        new_affine = Affine(new_affine)
+        return Affine(new_affine)
     return new_affine
 
 
-@overload
+VariadicAxCodes = TypeVarTuple("VariadicAxCodes")
+
+
+if TYPE_CHECKING:
+    import collections.abc as cx
+    from typing import Any, Protocol
+
+    F = TypeVar("F", bound=cx.Callable[..., Any])
+
+    class _ConvertNibItkFunc(Protocol):
+        def __call__(self, affine: AffineOrNdarray, *axcodes: str | None) -> Any: ...
+
+    def _type_check_axcodes(f: F, /) -> F | _ConvertNibItkFunc:
+        """Decorate a function to make it only accept variadic positional `axcodes` arguments of type `str` or `None`"""
+        return f
+else:
+
+    def _type_check_axcodes(f, /):
+        return f
+
+
+@_type_check_axcodes
 def convert_nib_itk(
-    affine: Affine,
-    axcode1: str | None,
-    axcode2: str | None,
-) -> tuple[Affine, str | None, str | None]: ...
-
-
-@overload
-def convert_nib_itk(
-    affine: NDArray[np.floating],
-    axcode1: str | None,
-    axcode2: str | None,
-) -> tuple[NDArray[np.floating], str | None, str | None]: ...
-
-
-@overload
-def convert_nib_itk(
-    affine: NDArray[np.floating] | Affine,
-    *axcodes: str | None,
-) -> tuple[NDArray[np.floating] | Affine | str | None, ...]: ...
-
-
-def convert_nib_itk(
-    affine: NDArray[np.floating] | Affine, *axcodes: str | None
-) -> tuple[NDArray[np.floating] | Affine | str | None, ...]:
+    affine: AffineOrNdarray, *axcodes: Unpack[VariadicAxCodes]
+) -> tuple[AffineOrNdarray, Unpack[VariadicAxCodes]]:
     """Convert affine and orientations (original and current orientations) from nibabel to itk and vice versa"""
     new_affine = convert_affine(affine)
     new_axcodes = []

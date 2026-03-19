@@ -57,7 +57,7 @@ def read_img(
     channels_axis: int | None = -1,
     coord_sys: CoordSys | None = "itk",
     **kwargs: Any,
-) -> tuple[NDArray[np.generic], MetaData[object]]:
+) -> tuple[NDArray[np.generic], MetaData[object] | MetaData[HeaderDict]]:
     """
     Read medical image with nibabel or itk
     :param input_path: str or os.PathLike, the input path of image file or a directory containing dicom series

@@ -37,12 +37,15 @@ class TestConvertAffine:
         np.testing.assert_array_almost_equal(result, expected)
 
     def test_roundtrip(self) -> None:
-        aff = np.array([
-            [0.5, 0, 0, 10],
-            [0, 0.5, 0, 20],
-            [0, 0, 1, 30],
-            [0, 0, 0, 1],
-        ], dtype=float)
+        aff = np.array(
+            [
+                [0.5, 0, 0, 10],
+                [0, 0.5, 0, 20],
+                [0, 0, 1, 30],
+                [0, 0, 0, 1],
+            ],
+            dtype=float,
+        )
         result = convert_affine(convert_affine(aff))
         np.testing.assert_array_almost_equal(result, aff)
 
