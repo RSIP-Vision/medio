@@ -33,5 +33,5 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - run: uv sync --group test
+      - run: uv sync --group dev
       - run: uv run pytest
