@@ -40,10 +40,8 @@ dependencies = [
 ]
 
 [dependency-groups]
-test = [
-    "pytest>=8",
-]
 dev = [
+    "pytest>=8.4.2",
     "ruff>=0.11",
     "ty>=0.0.23",
 ]
