@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
     from typing_extensions import Self, TypeVar
 
-    H = TypeVar("H", default=None)
+    H = TypeVar("H", default=Any, covariant=True)
 else:
     from typing import TypeVar
 
