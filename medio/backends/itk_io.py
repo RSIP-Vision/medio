@@ -19,6 +19,8 @@ if TYPE_CHECKING:
 
     from numpy.typing import NDArray
 
+    from medio.metadata.metadata import CoordSys
+
 
 class ItkIO:
     coord_sys: ClassVar[Literal["itk"]] = "itk"
@@ -337,6 +339,66 @@ class ItkIO:
         image_np = ItkIO.itk_img_to_array(img)
         affine = ItkIO.get_img_aff(img)
         return image_np, affine
+
+    @staticmethod
+    def from_itk_img(
+        itk_img: object,
+        desired_ornt: str | None = None,
+        coord_sys: CoordSys | None = "itk",
+        components_axis: int | None = None,
+    ) -> tuple[NDArray[np.generic], MetaData[object]]:
+        """
+        Convert an ITK image object to a medio (numpy array, MetaData) pair.
+        :param itk_img: an itk.Image object
+        :param desired_ornt: optional orientation for reorientation in the convention of `coord_sys`.
+            When coord_sys is None, must be in ITK convention.
+        :param coord_sys: convention of desired_ornt and returned MetaData ('itk', 'nib', or None).
+            None means no conversion is applied (ITK convention is returned).
+        :param components_axis: for multi-component images (e.g. RGB), move components to this axis
+        :return: (np_image, metadata) — same format as read_img
+        """
+        from medio.metadata.convert_nib_itk import inv_axcodes
+
+        itk_desired_ornt: str | None = desired_ornt
+        if (coord_sys is not None) and (coord_sys != ItkIO.coord_sys):
+            itk_desired_ornt = inv_axcodes(desired_ornt)
+
+        affine = ItkIO.get_img_aff(itk_img)
+        metadata: MetaData[object] = MetaData(affine=affine, coord_sys=ItkIO.coord_sys)
+        if (itk_desired_ornt is None) or (itk_desired_ornt == metadata.ornt):
+            img = itk_img
+            image_np = ItkIO.itk_img_to_array(img)
+        else:
+            orig_ornt = metadata.ornt
+            img, _ = ItkIO.reorient(itk_img, itk_desired_ornt)
+            image_np, affine = ItkIO.unpack_img(img)
+            metadata = MetaData(affine=affine, orig_ornt=orig_ornt, coord_sys=ItkIO.coord_sys)
+
+        n_components = img.GetNumberOfComponentsPerPixel()
+        if (n_components > 1) and (components_axis is not None):
+            image_np = np.moveaxis(image_np, ItkIO.DEFAULT_COMPONENTS_AXIS, components_axis)
+
+        if coord_sys is not None:
+            metadata.convert(coord_sys)
+        return image_np, metadata
+
+    @staticmethod
+    def to_itk_img(
+        np_image: NDArray[np.generic],
+        metadata: MetaData[object],
+        components_axis: int | None = None,
+    ) -> object:
+        """
+        Convert a medio (numpy array, MetaData) pair to an ITK image object.
+        Handles any coord_sys automatically; the caller's MetaData is never mutated.
+        :param np_image: the image numpy array
+        :param metadata: the MetaData object (any coord_sys)
+        :param components_axis: axis in np_image holding image components (e.g. RGB channels)
+        :return: itk.Image with spatial metadata applied
+        """
+        metadata_itk = metadata.clone()
+        metadata_itk.convert(ItkIO.coord_sys)
+        return ItkIO.pack2img(np_image, metadata_itk.affine, components_axis=components_axis)
 
     @staticmethod
     def get_img_aff(img: object) -> Affine:
