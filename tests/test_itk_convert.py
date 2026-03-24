@@ -69,9 +69,7 @@ class TestFromItkImg:
     def test_original_itk_image_not_mutated(self, nii_path) -> None:
         """Reorientation inside from_itk_img must not mutate the source itk.Image."""
         itk_img = itk.imread(str(nii_path))
-        orig_dir = itk.array_from_vnl_matrix(
-            itk_img.GetDirection().GetVnlMatrix().as_matrix()
-        ).copy()
+        orig_dir = itk.array_from_vnl_matrix(itk_img.GetDirection().GetVnlMatrix().as_matrix()).copy()
         orig_origin = np.array(itk_img.GetOrigin()).copy()
         ItkIO.from_itk_img(itk_img, desired_ornt="LPI")
         new_dir = itk.array_from_vnl_matrix(itk_img.GetDirection().GetVnlMatrix().as_matrix())
