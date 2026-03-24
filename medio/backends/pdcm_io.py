@@ -7,9 +7,10 @@ import nibabel.spatialimages
 import numpy as np
 import pydicom
 from dicom_numpy import combine_slices
+from dicom_numpy.combine_slices import _extract_cosines, _validate_image_orientation
 
-from medio.backends.nib_io import NibIO
-from medio.backends.pdcm_unpack_ds import unpack_dataset
+from medio.backends.nib_io import NibIO, _reorient_affine
+from medio.backends.pdcm_unpack_ds import affine_from_dataset, unpack_dataset
 from medio.metadata.convert_nib_itk import inv_axcodes
 from medio.metadata.metadata import MetaData
 from medio.metadata.pdcm_ds import MultiFrameFileDataset, convert_ds
@@ -74,6 +75,109 @@ class PdcmIO:
         if channeled and channels_axis != temp_channels_axis:
             img = np.moveaxis(img, temp_channels_axis, channels_axis)
         return img, metadata
+
+    @staticmethod
+    def read_meta(
+        input_path: str | os.PathLike[str],
+        desired_ornt: str | None = None,
+        header: bool = False,
+        globber: str = "*",
+        allow_default_affine: bool = False,
+        series: str | int | None = None,
+    ) -> MetaData[object]:
+        """
+        Read only the metadata (affine, orientation, spatial shape) of a DICOM file or directory without loading pixel
+        data.
+        :param input_path: path-like object (str or pathlib.Path) of the file or directory to read
+        :param desired_ornt: optional orientation string to reorient the metadata, e.g. 'LPI'
+        :param header: whether to include a header attribute (single file only; series raises NotImplementedError)
+        :param globber: relevant for a directory - globber for selecting the series files
+        :param allow_default_affine: use a default identity affine when geometric tags are missing (multiframe only)
+        :param series: series to read when a directory has multiple series
+        :return: MetaData with spatial_shape set
+        """
+        from medio.metadata.convert_nib_itk import convert_affine
+
+        input_path = Path(input_path)
+        if input_path.is_dir():
+            slices = PdcmIO.extract_slices_no_pixels(input_path, globber, series)
+            affine = PdcmIO._compute_series_affine(slices)
+            ds0 = slices[0]
+            spatial_shape: tuple[int, ...] = (int(ds0.Columns), int(ds0.Rows), len(slices))
+            metadata: MetaData[object] = PdcmIO.aff2meta(affine)
+            if header:
+                raise NotImplementedError("header=True is currently not supported for a series")
+        else:
+            ds = pydicom.dcmread(input_path, stop_before_pixels=True)
+            ds = convert_ds(ds)
+            if ds.__class__ is MultiFrameFileDataset:
+                affine = affine_from_dataset(ds, allow_default_affine=allow_default_affine)
+                n_frames = int(ds.NumberOfFrames)
+                spatial_shape = (int(ds.Columns), int(ds.Rows), n_frames)
+            else:
+                try:
+                    _validate_image_orientation(ds.ImageOrientationPatient)
+                    affine = PdcmIO._compute_single_slice_affine(ds)
+                except AttributeError as e:
+                    if allow_default_affine:
+                        affine = np.eye(4, dtype=np.float32)
+                    else:
+                        raise AttributeError(str(e) + "\nTry using: allow_default_affine=True") from e
+                spatial_shape = (int(ds.Columns), int(ds.Rows), 1)
+            metadata = PdcmIO.aff2meta(affine)
+            if header:
+                metadata.header = {str(key): ds[key] for key in ds}
+
+        if desired_ornt is not None and desired_ornt != metadata.ornt:
+            orig_ornt = metadata.ornt
+            # Convert affine to nib convention, reorient via pure matrix math, convert back
+            nib_affine = convert_affine(metadata.affine)
+            nib_desired = inv_axcodes(desired_ornt)
+            new_nib_affine, spatial_shape = _reorient_affine(np.array(nib_affine), spatial_shape, nib_desired)
+            metadata = MetaData(
+                affine=convert_affine(new_nib_affine),
+                orig_ornt=orig_ornt,
+                coord_sys=PdcmIO.coord_sys,
+                header=metadata.header,
+            )
+
+        metadata.spatial_shape = spatial_shape
+        return metadata
+
+    @staticmethod
+    def _compute_single_slice_affine(ds: pydicom.Dataset) -> NDArray[np.float32]:
+        """Compute affine for a regular (non-multiframe) single-slice DICOM dataset using header tags only."""
+        row_cosine, column_cosine, _ = _extract_cosines(ds.ImageOrientationPatient)
+        row_spacing, column_spacing = [float(x) for x in ds.PixelSpacing]
+        slice_cosine = np.cross(row_cosine, column_cosine)
+        slice_spacing = float(getattr(ds, "SpacingBetweenSlices", 1))
+        transform = np.identity(4, dtype=np.float32)
+        transform[:3, 0] = row_cosine * column_spacing
+        transform[:3, 1] = column_cosine * row_spacing
+        transform[:3, 2] = slice_cosine * slice_spacing
+        transform[:3, 3] = [float(x) for x in ds.ImagePositionPatient]
+        return transform
+
+    @staticmethod
+    def _compute_series_affine(slices: list[pydicom.Dataset]) -> NDArray[np.float32]:
+        """Compute affine from a sorted list of DICOM slice datasets using header tags only."""
+        ds0 = slices[0]
+        row_cosine, column_cosine, _ = _extract_cosines(ds0.ImageOrientationPatient)
+        row_spacing, column_spacing = [float(x) for x in ds0.PixelSpacing]
+        first_pos = np.array([float(x) for x in ds0.ImagePositionPatient], dtype=np.float32)
+        if len(slices) == 1:
+            slice_cosine = np.cross(row_cosine, column_cosine)
+            slice_spacing = float(getattr(ds0, "SpacingBetweenSlices", 1))
+            slice_vector = slice_cosine * slice_spacing
+        else:
+            last_pos = np.array([float(x) for x in slices[-1].ImagePositionPatient], dtype=np.float32)
+            slice_vector = (last_pos - first_pos) / (len(slices) - 1)
+        transform = np.identity(4, dtype=np.float32)
+        transform[:3, 0] = row_cosine * column_spacing
+        transform[:3, 1] = column_cosine * row_spacing
+        transform[:3, 2] = slice_vector
+        transform[:3, 3] = first_pos
+        return transform
 
     @staticmethod
     def read_dcm_file(
@@ -154,6 +258,27 @@ class PdcmIO:
         series_uid = parse_series_uids(input_dir, datasets.keys(), series, globber)
         slices = datasets[series_uid]
 
+        slices.sort(key=lambda ds: ds.get("InstanceNumber", 0))
+        return slices
+
+    @staticmethod
+    def extract_slices_no_pixels(
+        input_dir: str | os.PathLike[str],
+        globber: str = "*",
+        series: str | int | None = None,
+    ) -> list[pydicom.Dataset]:
+        """Extract slices from input_dir without loading pixel data (header-only).
+        Returns sorted list of pydicom Datasets read with stop_before_pixels=True."""
+        files = list(Path(input_dir).glob(globber))
+        slices = [pydicom.dcmread(f, stop_before_pixels=True) for f in files]
+
+        datasets: dict[str, list[pydicom.Dataset]] = {}
+        for slc in slices:
+            key = slc.SeriesInstanceUID
+            datasets[key] = [*datasets.get(key, []), slc]
+
+        series_uid = parse_series_uids(input_dir, datasets.keys(), series, globber)
+        slices = datasets[series_uid]
         slices.sort(key=lambda ds: ds.get("InstanceNumber", 0))
         return slices
 

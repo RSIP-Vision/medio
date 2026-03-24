@@ -99,6 +99,94 @@ class ItkIO:
         return image_np, metadata
 
     @staticmethod
+    def read_meta(
+        input_path: str | os.PathLike[str],
+        desired_axcodes: str | tuple[str, ...] | None = None,
+        header: bool = False,
+        pixel_type: itkt.PixelTypes | None = pixel_type,
+        fallback_only: bool = True,
+        series: str | int | None = None,
+        private_tags: bool = False,
+    ) -> "MetaData[object]":
+        """
+        Read only the metadata (affine, orientation, spatial shape) without loading pixel data.
+        Uses ITK's UpdateOutputInformation() which processes only the file header.
+        :param input_path: path of image file or directory containing dicom series
+        :param desired_axcodes: optional orientation string, e.g. 'LPI'
+        :param header: whether to include a header attribute with additional metadata
+        :param pixel_type: preferred itk pixel type
+        :param fallback_only: if True, auto-detect pixel type
+        :param series: series to read when a directory has multiple series
+        :param private_tags: if True, also load private DICOM tags (requires header=True)
+        :return: MetaData with spatial_shape set
+        """
+        from nibabel.orientations import aff2axcodes as nib_aff2axcodes
+
+        from medio.backends.nib_io import _reorient_affine
+        from medio.metadata.convert_nib_itk import convert_affine, inv_axcodes
+
+        input_path = Path(input_path)
+        image_type = itk.Image[pixel_type, ItkIO.dimension]
+
+        if input_path.is_dir():
+            filenames = ItkIO.extract_series(str(input_path), series)
+            reader = itk.ImageSeriesReader[image_type].New()
+            if isinstance(filenames, str):
+                reader.SetFileNames([filenames])
+            else:
+                reader.SetFileNames(filenames)
+            if header:
+                imageio = itk.GDCMImageIO.New()
+                if private_tags:
+                    imageio.LoadPrivateTagsOn()
+                reader.SetImageIO(imageio)
+            else:
+                imageio = None
+            reader.UpdateOutputInformation()
+            img = reader.GetOutput()
+        elif input_path.is_file():
+            reader = itk.ImageFileReader[image_type].New()
+            reader.SetFileName(str(input_path))
+            if header and is_dicom(str(input_path), check_exist=False):
+                imageio = itk.GDCMImageIO.New()
+                if private_tags:
+                    imageio.LoadPrivateTagsOn()
+                reader.SetImageIO(imageio)
+            else:
+                imageio = None
+            reader.UpdateOutputInformation()
+            img = reader.GetOutput()
+        else:
+            raise FileNotFoundError(f'No such file or directory: "{input_path}"')
+
+        affine = ItkIO.get_img_aff(img)
+
+        # Spatial shape in ITK is z, y, x from GetSize(); after the .T transpose in itk_img_to_array it becomes x, y, z
+        itk_size = img.GetLargestPossibleRegion().GetSize()
+        spatial_shape: tuple[int, ...] = tuple(itk_size[i] for i in range(ItkIO.dimension))
+
+        metadata: "MetaData[object]" = MetaData(affine=affine, coord_sys=ItkIO.coord_sys, spatial_shape=spatial_shape)
+
+        if desired_axcodes is not None and desired_axcodes != metadata.ornt:
+            orig_ornt = metadata.ornt
+            # Reorient using pure affine math (no pixel data)
+            # Convert to nib convention for _reorient_affine
+            nib_affine = convert_affine(affine)
+            nib_desired = inv_axcodes(desired_axcodes) if isinstance(desired_axcodes, str) else tuple(inv_axcodes(c) for c in desired_axcodes)
+            new_nib_affine, new_shape = _reorient_affine(nib_affine, spatial_shape, nib_desired)
+            new_affine = convert_affine(new_nib_affine)
+            metadata = MetaData(affine=new_affine, orig_ornt=orig_ornt, coord_sys=ItkIO.coord_sys, spatial_shape=new_shape)
+
+        if header:
+            try:
+                metadict = imageio.GetMetaDataDictionary() if imageio else img.GetMetaDataDictionary()
+                metadata.header = {key: metadict[key] for key in metadict.GetKeys() if not key.startswith("ITK_")}
+            except Exception:
+                metadata.header = {}
+
+        return metadata
+
+    @staticmethod
     def save_img(
         filename: str | os.PathLike[str],
         image_np: NDArray[np.generic],
