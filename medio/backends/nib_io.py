@@ -86,7 +86,8 @@ class NibIO:
         :param header: if True, populate metadata.header with NIfTI header fields
         :return: MetaData with spatial_shape set
         """
-        # nibabel already does lazy loading of the pixel data, so we can read the affine and header without loading the whole image.
+        # nibabel already does lazy loading of the pixel data, so we can read the affine and header
+        # without loading the whole image.
         img_struct = nib.load(input_path)
         orig_ornt_str = "".join(nib.aff2axcodes(img_struct.affine))
         nib_affine: NDArray[np.floating] = img_struct.affine
@@ -103,6 +104,7 @@ class NibIO:
             coord_sys=NibIO.coord_sys,
             spatial_shape=new_shape,
         )
+        metadata.spatial_shape = new_shape
         if header:
             metadata.header = {key: img_struct.header[key] for key in img_struct.header}
         return metadata

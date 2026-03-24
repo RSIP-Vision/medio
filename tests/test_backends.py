@@ -125,6 +125,7 @@ class TestReadMetaOnly:
     def test_nii_header_populated(self) -> None:
         meta = read_meta(TEST_NII, header=True)
         assert meta.header is not None
+        assert isinstance(meta.header, dict)
         assert len(meta.header) > 0
 
     def test_nii_nib_backend_spatial_shape(self) -> None:

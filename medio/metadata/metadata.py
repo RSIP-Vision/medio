@@ -89,14 +89,14 @@ class MetaData(Generic[H]):
             self.coord_sys = dest_coord_sys
 
     def clone(self) -> Self:
-        cloned = MetaData(  # type: ignore[return-value]
+        cloned = MetaData(
             affine=self.affine.clone(),
             orig_ornt=self.orig_ornt,
             coord_sys=self.coord_sys,
             header=deepcopy(self.header),
             spatial_shape=self.spatial_shape,
         )
-        return cloned
+        return cloned  # type: ignore[return-value]
 
     def get_ornt(self) -> str:
         """Returns current orientation based on the affine and coordinate system"""

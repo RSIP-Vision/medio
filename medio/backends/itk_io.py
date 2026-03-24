@@ -107,7 +107,7 @@ class ItkIO:
         fallback_only: bool = True,
         series: str | int | None = None,
         private_tags: bool = False,
-    ) -> "MetaData[object]":
+    ) -> MetaData[object]:
         """
         Read only the metadata (affine, orientation, spatial shape) without loading pixel data.
         Uses ITK's UpdateOutputInformation() which processes only the file header.
@@ -120,7 +120,6 @@ class ItkIO:
         :param private_tags: if True, also load private DICOM tags (requires header=True)
         :return: MetaData with spatial_shape set
         """
-        from nibabel.orientations import aff2axcodes as nib_aff2axcodes
 
         from medio.backends.nib_io import _reorient_affine
         from medio.metadata.convert_nib_itk import convert_affine, inv_axcodes
@@ -165,17 +164,23 @@ class ItkIO:
         itk_size = img.GetLargestPossibleRegion().GetSize()
         spatial_shape: tuple[int, ...] = tuple(itk_size[i] for i in range(ItkIO.dimension))
 
-        metadata: "MetaData[object]" = MetaData(affine=affine, coord_sys=ItkIO.coord_sys, spatial_shape=spatial_shape)
+        metadata: MetaData[object] = MetaData(affine=affine, coord_sys=ItkIO.coord_sys, spatial_shape=spatial_shape)
 
         if desired_axcodes is not None and desired_axcodes != metadata.ornt:
             orig_ornt = metadata.ornt
             # Reorient using pure affine math (no pixel data)
             # Convert to nib convention for _reorient_affine
             nib_affine = convert_affine(affine)
-            nib_desired = inv_axcodes(desired_axcodes) if isinstance(desired_axcodes, str) else tuple(inv_axcodes(c) for c in desired_axcodes)
+            nib_desired = (
+                inv_axcodes(desired_axcodes)
+                if isinstance(desired_axcodes, str)
+                else tuple(inv_axcodes(c) for c in desired_axcodes)
+            )
             new_nib_affine, new_shape = _reorient_affine(nib_affine, spatial_shape, nib_desired)
             new_affine = convert_affine(new_nib_affine)
-            metadata = MetaData(affine=new_affine, orig_ornt=orig_ornt, coord_sys=ItkIO.coord_sys, spatial_shape=new_shape)
+            metadata = MetaData(
+                affine=new_affine, orig_ornt=orig_ornt, coord_sys=ItkIO.coord_sys, spatial_shape=new_shape
+            )
 
         if header:
             try:
