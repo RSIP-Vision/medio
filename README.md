@@ -1,282 +1,284 @@
-[![Python version](
-https://img.shields.io/pypi/pyversions/medio.svg)](
-https://img.shields.io/pypi/pyversions/medio.svg)
-[![PyPI version](
-https://badge.fury.io/py/medio.svg)](
-https://badge.fury.io/py/medio)
+[![Python version](https://img.shields.io/pypi/pyversions/medio.svg)](https://pypi.org/project/medio)
+[![PyPI version](https://badge.fury.io/py/medio.svg)](https://badge.fury.io/py/medio)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/RSIP-Vision/medio/blob/main/LICENSE)
+
 # medio
 
-**Medical images I/O python package**
+**Medical image I/O for Python — read and write NIfTI, DICOM, MetaImage, and more in one consistent API.**
 
-This package unifies the io engines of itk, nibabel, and pydicom (including dicom-numpy) packages 
-in a simple and comprehensive interface.
+- One function reads any format; format auto-detected from path
+- Returns a NumPy array + rich `MetaData` (affine, orientation, spacing) — no format-specific objects to unwrap
+- Transparent coordinate system normalization between ITK and NiBabel conventions
+- Metadata-only reads (`read_meta`) for large files when you only need spatial info
 
-It includes conversion between the metadata conventions, reorientations, affine matrix computation 
-for itk and pydicom and saving dicom series or file.
+## Installation
 
-# Installation
-First, make sure you have the latest pip version (better to close PyCharm or any other program that 
-uses the environments):
+```bash
+pip install medio
 ```
-(<env-name>) >pip install -U pip
-```
-Install *medio* with:
-```
-(<env-name>) >pip install -U medio
-```
-This will install the medio python package and its dependencies in your environment.
 
-### Requirements
-The dependencies are:
-- python (at least 3.6)
-- numpy
-- itk
-- nibabel
-- pydicom
-- dicom-numpy
+Some compressed DICOM files require `gdcm`:
 
-A conda environment .yml file is in the project's root.
-Some dicom images may require installation of additional packages, gdcm for example.
+```bash
+pip install gdcm
+```
 
-# Usage
-There are 3 main functions in medio: `read_img`, `save_img` and `save_dir`.
+## Usage
+
+### Read and save any format
+
 ```python
-from medio import read_img, save_img
-# read a dicom series from a folder
-array, metadata = read_img('data/dicom-folder/', desired_ornt='IAR')
-# do your stuff and save in any format
-save_img('ct.nii.gz', array, metadata, backend='nib')
+import medio
+
+arr, meta = medio.read_img('scan.nii.gz')
+print(meta.ornt, meta.spacing)   # e.g. 'LPI', [0.5, 0.5, 1.0]
+
+medio.save_img('out.mhd', arr, meta)
 ```
 
-# Documentation
-## Reading and Saving Images
+### Read metadata only — no pixel data loaded
 
-### read_img
-`medio.read_img(input_path, desired_ornt=None, backend=None, dtype=None, header=False, 
-channels_axis=-1, coord_sys='itk', **kwargs)`
-- `input_path`: *path-like*<br>
-  Path for the data to be read (str or pathlib.Path object for example). It can be a file or a 
-  folder (in the case of a dicom series). It is the only required parameter.
-  If the input path is a folder, it should contain a single dicom series. 
-  If there is more than a single series, the optional parameter `series` can help. 
-- Returns: *array, metadata*<br>
-  array of type *numpy.ndarray* and metadata of type *medio.MetaData*. The first is a numpy array 
-  of the image, and the second is a metadata object of the image (see [MetaData](#metadata) class 
-  documentation).
-
-Optional parameters:
-- `desired_ornt`: *orientation string or None*<br>
-  The desired orientation of the returned image array, e.g. 'RAI'. If None, no reorientation is 
-  performed.
-  The desired orientation is in the standard defined by `coord_sys` (itk by default). 
-  See also [Orientation](#orientation)).<br>
-  If `desired_ornt` is the same as the original image's orientation, no reorientation is performed.
-- `backend`: *'nib', 'itk', 'pydicom', 'pdcm', or None*<br>
-  The backend IO engine to use: 'nib' (nibabel), 'itk' or 'pydicom' (also 'pdcm'). If None, the 
-  backend is chosen automatically: 'nib' for nifti files (e.g. '.nii' or '.nii.gz' suffix), 
-  otherwise 'itk'.
-- `dtype`: *numpy data-type or None*<br>
-  If not None, equivalent to `array.astype(dtype)` on the returned image array.
-- `header`: *bool*<br>
-  If True, the returned metadata includes also a `metadata.header` attribute that stores the raw 
-  metadata of the file as a dictionary.<br>
-  This is not implemented for series of files (folder `input_path`), and not used during saving.
-- `channels_axis`: *int or None*<br>
-  If not None and the image has more than a single channel / component (e.g. RGB or RGBA), the 
-  channels axis is `channels_axis`. If None, the backend's original convention is used.
-- `coord_sys`: *'itk', 'nib', or None*<br>
-  The coordinate system (or convention) of the `desired_ornt` parameter and the returned metadata.
-  None means that the backend will determine `coord_sys`, but it can lead to a backend-dependent 
-  array and metadata.
-
-`**kwargs` are additional per-backend optional parameters:
-- 'itk' backend:
-  - `pixel_type=itk.SS`: *itk pixel-type or None*<br>
-    Itk pixel type of the image file/folder. The default value is int16 (`itk.SS` - Signed Short). 
-    Other common pixel types are: `itk.UC` - uint8, `itk.US` - uint16.<br>
-    You can use the function `itk.ctype` in order to convert C-types to itk types. For example:<br>
-    `itk.ctype('unsigned short') == itk.US`
-  - `fallback_only=True`: *bool*<br>
-    If True, the pixel type is automatically found and if failed then `pixel_type` is used 
-    (`pixel_type` must not be None in this case).<br>
-    Note: if `itk.imread(input_path)` fails, using `fallback_only=True` will result in a slightly 
-    inferior performance. If you know what is pixel-type of the image beforehand, you can set it 
-    with `pixel_type` and use `fallback_only=False`.
-  - `series=None`: *str, int or None*<br>
-    If `input_path` is a directory that contains multiple dicom series, selecting a specific one is 
-    possible with the `series` argument. It can be the exact series instance UID (str), an int 
-    between 0 and n-1, where n is the number of series in the directory, or None.<br>
-    If `series` is None and there are multiple series in the directory, a detailed error message 
-    is raised.
-
-- 'pydicom' backend
-  - `globber='*'`: *str*<br>
-    Relevant for a directory - glob pattern for selecting the series files (all the files in the 
-    directory by default).
-  - `allow_default_affine=False`: *bool*<br>
-    Relevant for a multiframe dicom file - if True and the dicom misses some physical tags for the 
-    affine calculation, use a default affine value.
-  - `series=None`: *str, int or None*<br>
-    The counterpart of `series` in itk backend, see the explanation above.
-
-### save_img
-`medio.save_img(filename, np_image, metadata, use_original_ornt=True, backend=None, dtype=None, 
-channels_axis=None, mkdir=False, parents=False, **kwargs)`
-- `filename`: *path-like*<br>
-  The file to be saved, including the format suffix.
-- `np_image`: *numpy.ndarray*<br>
-  The image array.
-- `metadata`: *medio.MetaData*<br>
-  The corresponding metadata, from `medio.read_img` for example. In the absence of a known 
-  metadata, a default one can be constructed with `medio.MetaData(np.eye(4))`.
-
-Optional parameters:
-- `use_original_ornt`: *bool*<br> 
-  Whether to save in the original orientation stored in `metadata.orig_ornt` or not.
-- `backend`: *'nib', 'itk' or None*<br>
-  The backend to use: 'nib' or 'itk'. If None, 'nib' is chosen for nifti files and 'itk' otherwise.
-- `dtype`: *numpy data-type or None*<br>
-  If not None, equivalent to passing `np_image.astype(dtype)`. Note that not every dtype is 
-  supported in saving, so make sure what is the dtype of the image array you want to save.
-- `channels_axis`: *int or None*<br>
-  If not None, the image has channels (e.g. RGB) along the axis `channels_axis` of `np_image`.
-- `mkdir`: *bool*<br>
-  If True, creates the directory of `filename`.
-- `parents`: *bool*<br>
-  To be used with `mkdir=True`. If True, creates also the parent directories. 
-
-'itk' backend optional parameters (`**kwargs`):
-- `allow_dcm_reorient=False`: *bool*<br>
-  When saving a dicom file ('.dcm' or '.dicom' suffix) the image orientation should be right-handed.
-  If it is left-handed, the image can be reoriented to a right-handed orientation by setting this 
-  parameter to True, which flips the last axis direction.
-- `compression=False`: *bool*<br>
-  Whether to use compression in itk writer. Using a '.nii.gz' suffix in `filename` also compresses
-  the image.
-
-### save_dir
-`medio.save_dir(dirname, np_image, metadata, use_original_ornt=True, dtype=None, channels_axis=None,
-parents=False, exist_ok=False, allow_dcm_reorient=False, **kwargs)`
-
-Save a 3d numpy array `np_image` as a dicom series of 2d slices in the directory `dirname` (itk 
-backend).
-
-- `dirname`: *path-like*<br>
-  The directory to save the files in (str or pathlib.Path). If it exists, it must be empty (unless 
-  `exist_ok` is True).
-
-The other parameters: `np_image`, `metadata`, `use_original_ornt`, `dtype`, `channels_axis`, 
-`parents` and `allow_dcm_reorient` are equivalent to those of [save_img](#save_img).
-
-Additional optional parameters (`**kwargs`):
-- `exist_ok`: *bool*<br>
-  If True, non-empty existing directory will not raise an error.
-- `pattern='IM{}.dcm'`: *str*<br>
-  Pattern for the filenames to save, including a placeholder ('`{}`') for the slice number.
-  For example, one can use: `pattern={:03d}`.
-- `metadata_dict=None`: *dict or None*<br>
-  Dictionary of metadata for adding tags or overriding the default values. For example, 
-  `metadata_dict={'0008|0060': 'US'}` will override the default 'CT' modality and set it to 'US' 
-  (ultrasound).
-
-## Metadata Objects
-### Affine
-`medio.Affine`
-
-The affine of an image is a transformation between the index space of the array to the physical 3d 
-space. The Affine class is a subclass of numpy.ndarray with some special properties (attributes): 
-`spacing`, `origin`, and `direction`, which can be accessed and set. The method `index2coord` maps 
-the indices to the physical space, `clone` clones the affine.
-
-This class includes also some static methods for affine construction from its components (spacing, 
-origin and direction) and also the inverse methods for getting the spacing, origin and direction 
-matrix from a general affine matrix.
-
-For a mathematical explanation about the affine matrix see 
-[NiBabel's affine documentation](
-https://nipy.org/nibabel/coordinate_systems.html#the-affine-matrix-as-a-transformation-between-spaces).
-
-Some usage examples:
 ```python
->>> import numpy as np
->>> from medio import Affine
->>> affine1 = Affine(np.eye(4))
->>> affine2 = Affine(direction=np.eye(3), spacing=[0.33, 1, 0.33], origin=[-90.3, 10, 1.44])
->>> index = [4, 0, 9]
->>> coord = affine2.index2coord(index)
->>> print(coord)
-[-88.98  10.     4.41]
+meta = medio.read_meta('large_scan.nii.gz')
+print(meta.spatial_shape)    # (256, 256, 128)
+print(meta.affine.spacing)   # [0.98, 0.98, 1.5]
 ```
 
-### MetaData
-`medio.MetaData`
+### Reorient to a standard orientation
 
-Together with the image's numpy array, the MetaData object is a necessary component for the I/O 
-functions.
-
-A MetaData object 'metadata' is mainly comprised of:
-- `metadata.affine`: the affine (of class Affine)
-- `metadata.coord_sys`: coordinate system ('itk' or 'nib') 
-- `metadata.orig_ornt`: the original orientation of the image (used for saving)
-- `metadata.header`: a dictionary that includes additional metadata properties when `header=True` 
-  in `read_img`, otherwise None
-
-Other properties of the metadata are derived from the affine:
-- `metadata.spacing`: voxels spacing (a reference to `metadata.affine.spacing`) 
-- `metadata.ornt`: the current image orientation (depends on the coordinate system `coord_sys`)
-
-All these properties can be viewed easily in the console:
 ```python
->>> import medio
->>> array, metadata = medio.read_img('avg152T1_LR_nifti.nii.gz', header=False)
->>> print(metadata)
-Affine:
-[[  -2.    0.    0.   90.]
- [   0.    2.    0. -126.]
- [   0.    0.    2.  -72.]
- [   0.    0.    0.    1.]]
-Spacing: [2. 2. 2.]
-Coordinate system: nib
-Orientation: LAS
-Original orientation: LAS
-Header: None
+arr, meta = medio.read_img('scan.nii.gz', desired_ornt='RAS')
+# arr axes are reordered; meta.affine updated to match
 ```
-The MetaData method `metadata.is_right_handed_ornt()` checks for a right handed orientation 
-according to the determinant of the direction matrix (`metadata.affine.direction`). This method can 
-be useful before saving a dicom file or series, which should have a right-handed orientation.
 
-The method `clone` clones the metadata object, `convert` converts the metadata in-place to the 
-given coordinate system.
+### Write a DICOM series from a 3D array
 
-#### Orientation
-The orientation of a 3d image is string of length 3 that is derived from its affine and coordinate 
-system (the convention). It denotes along which physical axis we move when we increase a single 
-index out of `i, j, k` in the expression `np_image[i, j, k]`.
-
-For example, 'RAS' orientation in itk:
-- **R**ight to Left, **A**nterior to Posterior, **S**uperior to Inferior
-
-'RAS' in nib - also 'RAS+':
-- Left to **R**ight, Posterior to **A**nterior, Inferior to **S**uperior
-
-Note that the conventions are opposite. For stability reasons, we use itk convention by default 
-for `read_img`'s argument `desired_ornt`, although one can choose otherwise with the parameter 
-`coord_sys`.
-
-For further discussion see 
-[NiBabel's image orientation documentation](
-https://nipy.org/nibabel/image_orientation.html#image-voxel-orientation).
-
-## Array and Metadata Operations
-Some operations on an image affect also its metadata, for example resizing, rotations and cropping.
-
-The class MedImg (`medio.medimg.medimg.MedImg`) holds an image array with its metadata, and 
-supports some of these operations through the indexing syntax:
 ```python
->>> from medio.medimg.medimg import MedImg
->>> mimg = MedImg(np_image, metadata)
->>> new_mimg = mimg[:, 4:-4, ::3]
->>> print(new_mimg.metadata)
+arr, meta = medio.read_img('scan.mhd')
+medio.save_dir('dicom_out/', arr, meta)
 ```
-Ellipsis ('...') syntax is also supported. This indexing allows cropping and basic down-sampling, 
-along with correct metadata update.
+
+### ITK pipeline bridge — no disk round-trip required
+
+```python
+import itk
+from medio import ItkIO
+
+itk_img = itk.imread('scan.nii.gz')
+arr, meta = ItkIO.from_itk_img(itk_img)     # import itk.Image → NumPy
+
+# ... process arr with any NumPy-compatible tool ...
+
+itk_result = ItkIO.to_itk_img(arr, meta)    # export back to itk.Image
+```
+
+### Spatial slicing with automatic affine update
+
+```python
+from medio.medimg.medimg import MedImg
+
+mimg = MedImg(arr, meta)
+cropped      = mimg[2:8, 3:7, :]    # origin updated
+downsampled  = mimg[::2, ::2, ::1]  # spacing updated
+```
+
+---
+
+## Supported Formats
+
+| Format | Extensions | Default backend |
+|--------|------------|-----------------|
+| NIfTI | `.nii`, `.nii.gz` | ITK |
+| DICOM | directory or `.dcm` | ITK |
+| MetaImage | `.mhd`, `.mha` | ITK |
+| NIfTI (NiBabel) | `.nii`, `.nii.gz` | `backend='nib'` |
+| DICOM (pydicom) | `.dcm` | `backend='pdcm'` |
+| Other ITK formats | `.png`, `.jpg`, … | ITK |
+
+---
+
+## API Reference
+
+### `read_img`
+
+```python
+medio.read_img(input_path, desired_ornt=None, backend=None, dtype=None,
+               header=False, channels_axis=-1, coord_sys='itk', **kwargs)
+→ tuple[np.ndarray, MetaData]
+```
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `input_path` | path-like | — | File or DICOM directory |
+| `desired_ornt` | str \| None | `None` | Reorient to this axis code (e.g. `'RAS'`) |
+| `backend` | str \| None | `None` | Force backend: `'itk'`, `'nib'`, `'pdcm'` |
+| `dtype` | dtype \| None | `None` | Cast array to this dtype |
+| `header` | bool | `False` | Include raw format header in `MetaData.header` |
+| `channels_axis` | int \| None | `-1` | Axis for multi-channel (e.g. RGB) images |
+| `coord_sys` | `'itk'` \| `'nib'` \| None | `'itk'` | Coordinate convention for orientation and metadata |
+
+`**kwargs` are passed to the backend. ITK-specific: `pixel_type`, `fallback_only`, `series`. pydicom-specific: `globber`, `allow_default_affine`, `series`.
+
+---
+
+### `read_meta`
+
+```python
+medio.read_meta(input_path, desired_ornt=None, backend=None,
+                header=False, coord_sys='itk', **kwargs)
+→ MetaData
+```
+
+Same parameters as `read_img` (no `dtype` or `channels_axis`). Returns metadata only — pixel data is never loaded. Populates `metadata.spatial_shape` with the image dimensions.
+
+---
+
+### `save_img`
+
+```python
+medio.save_img(filename, np_image, metadata, use_original_ornt=True,
+               backend=None, dtype=None, channels_axis=None,
+               mkdir=False, parents=False, **kwargs)
+```
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `filename` | path-like | — | Output file path (format inferred from suffix) |
+| `np_image` | ndarray | — | Image array |
+| `metadata` | MetaData | — | Spatial metadata |
+| `use_original_ornt` | bool | `True` | Reorient to `metadata.orig_ornt` before saving |
+| `backend` | str \| None | `None` | Force backend: `'itk'` or `'nib'` |
+| `dtype` | dtype \| None | `None` | Cast before saving |
+| `channels_axis` | int \| None | `None` | Axis of channel dimension in `np_image` |
+| `mkdir` | bool | `False` | Create the output directory if it doesn't exist |
+| `parents` | bool | `False` | Create all missing parent directories |
+
+ITK `**kwargs`: `allow_dcm_reorient=False`, `compression=False`.
+
+When no preexisting metadata is available, construct a default:
+
+```python
+import numpy as np
+from medio import MetaData, save_img
+
+save_img('output.nii.gz', arr, MetaData(np.eye(4)))
+```
+
+---
+
+### `save_dir`
+
+```python
+medio.save_dir(dirname, np_image, metadata, use_original_ornt=True,
+               dtype=None, channels_axis=None, parents=False,
+               exist_ok=False, allow_dcm_reorient=False, **kwargs)
+```
+
+Saves a 3D array as a DICOM series of 2D slices (ITK backend).
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `dirname` | — | Output directory |
+| `exist_ok` | `False` | Allow writing into an existing non-empty directory |
+| `allow_dcm_reorient` | `False` | Reorient to nearest right-handed orientation if needed |
+| `pattern` | `'IM{}.dcm'` | Filename pattern; `{}` is replaced with the slice number |
+| `metadata_dict` | `None` | Override or add DICOM tags, e.g. `{'0008\|0060': 'US'}` |
+
+---
+
+### `ItkIO` — ITK integration
+
+Static methods for importing and exporting `itk.Image` objects.
+
+| Method | Description |
+|--------|-------------|
+| `ItkIO.from_itk_img(itk_img, desired_ornt=None, coord_sys='itk', components_axis=0)` | `itk.Image` → `(ndarray, MetaData)` |
+| `ItkIO.to_itk_img(np_image, metadata, components_axis=None)` | `(ndarray, MetaData)` → `itk.Image` |
+| `ItkIO.reorient(img, desired_orientation)` | Reorient `itk.Image`, returns `(img, orig_code)` |
+| `ItkIO.get_img_aff(img)` | Extract `Affine` from `itk.Image` |
+| `ItkIO.set_img_aff(img, affine)` | Set affine on `itk.Image` in place |
+| `ItkIO.pack2img(array, affine, components_axis)` | `ndarray` + `Affine` → `itk.Image` |
+| `ItkIO.unpack_img(img)` | `itk.Image` → `(ndarray, Affine)` |
+
+---
+
+### `MetaData`
+
+```python
+medio.MetaData(affine, coord_sys='itk', orig_ornt=None, header=None, spatial_shape=None)
+```
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `affine` | `Affine` | 4×4 spatial transform (index space → physical space) |
+| `coord_sys` | str | `'itk'` or `'nib'` |
+| `ornt` | str | Current orientation code (e.g. `'LPI'`), derived from affine |
+| `orig_ornt` | str | Orientation before any reorientation |
+| `spacing` | ndarray | Voxel spacing — alias for `affine.spacing` |
+| `header` | dict \| None | Raw format header (populated when `header=True` in `read_img`) |
+| `spatial_shape` | tuple \| None | Image dimensions (populated by `read_meta`) |
+
+Methods: `.convert(dest_coord_sys)` — in-place convention switch; `.clone()` — deep copy.
+
+---
+
+### `Affine`
+
+A 4×4 NumPy array subclass with named spatial accessors.
+
+```python
+from medio import Affine
+import numpy as np
+
+aff = Affine(np.eye(4))
+aff = Affine(direction=np.eye(3), spacing=[0.5, 0.5, 1.0], origin=[0., 0., 0.])
+coord = aff.index2coord([4, 0, 9])   # map voxel index → physical coordinate
+```
+
+Properties: `.spacing`, `.origin`, `.direction` (all gettable and settable). Method: `.clone()`.
+
+For a mathematical background see [NiBabel's affine documentation](https://nipy.org/nibabel/coordinate_systems.html#the-affine-matrix-as-a-transformation-between-spaces).
+
+---
+
+### `MedImg`
+
+Container for an image array + metadata with spatially-aware indexing.
+
+```python
+from medio.medimg.medimg import MedImg
+
+mimg = MedImg(arr, meta)                         # from array + metadata
+mimg = MedImg(None, None, filename='scan.mhd')   # load from file
+```
+
+Indexing crops or downsamples the array and updates the affine automatically:
+
+| Indexing | Effect on metadata |
+|----------|--------------------|
+| `mimg[2:8, 3:7, :]` | origin updated to new start voxel |
+| `mimg[::2, ::2, ::1]` | spacing scaled by step sizes |
+| `mimg[..., 5:15]` | ellipsis supported |
+
+Properties: `.np_image`, `.metadata`. Method: `.save(filename)`.
+
+---
+
+### Orientation conventions
+
+medio uses **ITK convention** by default (`coord_sys='itk'`). ITK and NiBabel define orientation strings with opposite axis directions:
+
+| Convention | `'RAS'` means |
+|------------|---------------|
+| ITK | R→L, A→P, S→I |
+| NiBabel (`nib`) | L→R, P→A, I→S |
+
+Pass `coord_sys='nib'` to `read_img` / `read_meta` to work in NiBabel convention throughout.
+
+---
+
+## License
+
+Apache 2.0 — see [LICENSE](https://github.com/RSIP-Vision/medio/blob/main/LICENSE).
+
+Issues and contributions: [github.com/RSIP-Vision/medio/issues](https://github.com/RSIP-Vision/medio/issues)
