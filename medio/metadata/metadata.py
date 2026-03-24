@@ -29,6 +29,7 @@ class MetaData(Generic[H]):
     orig_ornt: str | None
     coord_sys: CoordSys
     header: H | None
+    spatial_shape: tuple[int, ...] | None
     _ornt: str | None
 
     def __init__(
@@ -37,6 +38,7 @@ class MetaData(Generic[H]):
         orig_ornt: str | None = None,
         coord_sys: CoordSys = "itk",
         header: H | None = None,
+        spatial_shape: tuple[int, ...] | None = None,
     ) -> None:
         """
         Initialize medical image's metadata
@@ -53,6 +55,7 @@ class MetaData(Generic[H]):
         self._ornt = None
         self.coord_sys = self.check_valid_coord_sys(coord_sys)
         self.header = header
+        self.spatial_shape = spatial_shape
 
     @staticmethod
     def check_valid_coord_sys(coord_sys: str) -> CoordSys:
@@ -62,13 +65,15 @@ class MetaData(Generic[H]):
 
     def __repr__(self) -> str:
         sep = " " if self.header is None else "\n"
+        spatial_shape_str = f"\nSpatial shape: {self.spatial_shape}" if self.spatial_shape is not None else ""
         return (
             f"Affine:\n"
             f"{self.affine}\n"
             f"Spacing: {self.spacing}\n"
             f"Coordinate system: {self.coord_sys}\n"
             f"Orientation: {self.ornt}\n"
-            f"Original orientation: {self.orig_ornt}\n"
+            f"Original orientation: {self.orig_ornt}"
+            f"{spatial_shape_str}\n"
             f"Header:{sep}"
             f"{pprint.pformat(self.header, indent=4)}"
         )
@@ -84,12 +89,14 @@ class MetaData(Generic[H]):
             self.coord_sys = dest_coord_sys
 
     def clone(self) -> Self:
-        return MetaData(  # type: ignore[return-value]
+        cloned = MetaData(
             affine=self.affine.clone(),
             orig_ornt=self.orig_ornt,
             coord_sys=self.coord_sys,
             header=deepcopy(self.header),
+            spatial_shape=self.spatial_shape,
         )
+        return cloned  # type: ignore[return-value]
 
     def get_ornt(self) -> str:
         """Returns current orientation based on the affine and coordinate system"""

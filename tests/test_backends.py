@@ -6,7 +6,7 @@ import tempfile
 import numpy as np
 import pytest
 
-from medio.read_save import read_img, save_dir, save_img
+from medio.read_save import read_img, read_meta, save_dir, save_img
 
 TEST_NII = os.path.join(os.path.dirname(__file__), "data", "test.nii.gz")
 TEST_DCM_DIR = os.path.join(os.path.dirname(__file__), "data", "dcm")
@@ -98,3 +98,68 @@ class TestInvalidBackend:
         meta_data = read_img(TEST_NII)[1]
         with pytest.raises(ValueError):
             save_img("/tmp/test.nii.gz", arr, meta_data, backend="invalid")  # type: ignore[arg-type]
+
+
+class TestReadMetaOnly:
+    def test_nii_spatial_shape_matches_full_read(self) -> None:
+        arr, _ = read_img(TEST_NII)
+        meta = read_meta(TEST_NII)
+        assert meta.spatial_shape is not None
+        assert meta.spatial_shape == arr.shape[:3]
+
+    def test_nii_affine_matches_full_read(self) -> None:
+        _, full_meta = read_img(TEST_NII)
+        meta = read_meta(TEST_NII)
+        np.testing.assert_allclose(meta.affine, full_meta.affine, atol=1e-5)
+
+    def test_nii_coord_sys(self) -> None:
+        meta = read_meta(TEST_NII)
+        assert meta.coord_sys == "itk"
+
+    def test_nii_spatial_shape_with_desired_ornt(self) -> None:
+        arr, _ = read_img(TEST_NII, desired_ornt="LPI")
+        meta = read_meta(TEST_NII, desired_ornt="LPI")
+        assert meta.spatial_shape is not None
+        assert meta.spatial_shape == arr.shape[:3]
+
+    def test_nii_header_populated(self) -> None:
+        meta = read_meta(TEST_NII, header=True)
+        assert meta.header is not None
+        assert isinstance(meta.header, dict)
+        assert len(meta.header) > 0
+
+    def test_nii_nib_backend_spatial_shape(self) -> None:
+        arr, _ = read_img(TEST_NII, backend="nib")
+        meta = read_meta(TEST_NII, backend="nib")
+        assert meta.spatial_shape is not None
+        assert meta.spatial_shape == arr.shape[:3]
+
+    def test_nii_nib_backend_coord_sys_nib(self) -> None:
+        meta = read_meta(TEST_NII, backend="nib", coord_sys="nib")
+        assert meta.coord_sys == "nib"
+
+    def test_dcm_dir_spatial_shape_matches_full_read(self) -> None:
+        arr, _ = read_img(TEST_DCM_DIR)
+        meta = read_meta(TEST_DCM_DIR)
+        assert meta.spatial_shape is not None
+        assert meta.spatial_shape == arr.shape[:3]
+
+    def test_dcm_dir_affine_matches_full_read(self) -> None:
+        _, full_meta = read_img(TEST_DCM_DIR)
+        meta = read_meta(TEST_DCM_DIR)
+        np.testing.assert_allclose(meta.affine, full_meta.affine, atol=1e-3)
+
+    def test_dcm_dir_pdcm_backend_spatial_shape(self) -> None:
+        arr, _ = read_img(TEST_DCM_DIR, backend="pdcm")
+        meta = read_meta(TEST_DCM_DIR, backend="pdcm")
+        assert meta.spatial_shape is not None
+        assert meta.spatial_shape == arr.shape[:3]
+
+    def test_dcm_dir_pdcm_affine_matches_itk(self) -> None:
+        meta_itk = read_meta(TEST_DCM_DIR, backend="itk")
+        meta_pdcm = read_meta(TEST_DCM_DIR, backend="pdcm")
+        np.testing.assert_allclose(meta_itk.affine, meta_pdcm.affine, atol=1e-3)
+
+    def test_invalid_backend(self) -> None:
+        with pytest.raises(ValueError):
+            read_meta(TEST_NII, backend="invalid")  # type: ignore[arg-type]

@@ -104,6 +104,53 @@ def read_img(
     return np_image, metadata
 
 
+def read_meta(
+    input_path: str | os.PathLike[str],
+    desired_ornt: str | None = None,
+    backend: ReadBackend | None = None,
+    header: bool = False,
+    coord_sys: CoordSys | None = "itk",
+    **kwargs: Any,
+) -> MetaData[object]:
+    """
+    Read only the metadata of a medical image (affine, orientation, spatial shape) without loading pixel data.
+    :param input_path: str or os.PathLike, the input path of an image file or a DICOM directory
+    :param desired_ornt: optional orientation to reorient the returned metadata, e.g. 'RAS'. Uses the `coord_sys`
+    convention (itk by default).
+    :param backend: optional backend to use: 'itk', 'nib', 'pdcm' (also 'pydicom') or None (auto-detected)
+    :param header: if True, the returned metadata will include a header attribute with the raw backend metadata
+    dictionary. Currently supported for single files only (not DICOM series).
+    :param coord_sys: coordinate system of `desired_ornt` and of the returned metadata: 'itk', 'nib' or None.
+    :return: MetaData object with spatial_shape set to the image dimensions
+    """
+    nib_reader_data = (NibIO.read_meta, NibIO.coord_sys)
+    itk_reader_data = (ItkIO.read_meta, ItkIO.coord_sys)
+    pdcm_reader_data = (PdcmIO.read_meta, PdcmIO.coord_sys)
+    if backend is None:
+        if is_nifti(input_path):
+            reader_meta, reader_sys = nib_reader_data
+        else:
+            reader_meta, reader_sys = itk_reader_data
+    else:
+        if backend == "nib":
+            reader_meta, reader_sys = nib_reader_data
+        elif backend == "itk":
+            reader_meta, reader_sys = itk_reader_data
+        elif backend in ("pdcm", "pydicom"):
+            reader_meta, reader_sys = pdcm_reader_data
+        else:
+            raise ValueError('The backend argument must be one of: "itk", "nib", "pdcm" (or "pydicom"), None')
+
+    if (coord_sys is not None) and (coord_sys != reader_sys):
+        desired_ornt = inv_axcodes(desired_ornt)
+
+    metadata = reader_meta(input_path, desired_ornt, header, **kwargs)
+
+    if coord_sys is not None:
+        metadata.convert(coord_sys)
+    return metadata
+
+
 def save_img(
     filename: str | os.PathLike[str],
     np_image: NDArray[np.generic],

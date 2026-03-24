@@ -21,6 +21,25 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def affine_from_dataset(
+    dataset: pydicom.Dataset,
+    allow_default_affine: bool = False,
+) -> NDArray[np.float32]:
+    """
+    Compute the 4x4 affine transformation matrix for a multiframe pydicom dataset
+    without loading pixel data.
+
+    This is the header-only variant of :func:`unpack_dataset`.
+    """
+    try:
+        _validate_image_orientation(dataset.ImageOrientationPatient)
+        return _ijk_to_patient_xyz_transform_matrix(dataset)
+    except AttributeError as e:
+        if allow_default_affine:
+            return np.eye(4, dtype=np.float32)
+        raise AttributeError(str(e) + "\nTry using: allow_default_affine=True") from e
+
+
 def unpack_dataset(
     dataset: pydicom.Dataset,
     rescale: bool | None = None,

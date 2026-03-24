@@ -5,7 +5,7 @@ import tempfile
 
 import numpy as np
 
-from medio.read_save import read_img, save_dir, save_img
+from medio.read_save import read_img, read_meta, save_dir, save_img
 
 TEST_NII = os.path.join(os.path.dirname(__file__), "data", "test.nii.gz")
 TEST_DCM_DIR = os.path.join(os.path.dirname(__file__), "data", "dcm")
@@ -37,3 +37,21 @@ def test_read_write_dicom():
         assert arr2 is not None and arr2.size > 0
         # DICOM metadata may not have affine, but should have some attributes
         assert hasattr(meta2, "series_uid") or hasattr(meta2, "header")
+
+
+def test_read_meta_nii():
+    meta = read_meta(TEST_NII)
+    assert meta.spatial_shape is not None
+    assert len(meta.spatial_shape) == 3
+    assert all(d > 0 for d in meta.spatial_shape)
+    arr, _ = read_img(TEST_NII)
+    assert meta.spatial_shape == arr.shape[:3]
+
+
+def test_read_meta_dcm():
+    meta = read_meta(TEST_DCM_DIR)
+    assert meta.spatial_shape is not None
+    assert len(meta.spatial_shape) == 3
+    assert all(d > 0 for d in meta.spatial_shape)
+    arr, _ = read_img(TEST_DCM_DIR)
+    assert meta.spatial_shape == arr.shape[:3]

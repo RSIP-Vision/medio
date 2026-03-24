@@ -14,6 +14,29 @@ if TYPE_CHECKING:
 
     from numpy.typing import NDArray
 
+
+def _reorient_affine(
+    nib_affine: NDArray[np.floating],
+    orig_shape: tuple[int, ...],
+    desired_nib_axcodes: str | tuple[str, ...],
+) -> tuple[NDArray[np.floating], tuple[int, ...]]:
+    """Reorient a nibabel affine and shape to `desired_nib_axcodes` without loading pixel data.
+
+    :param nib_affine: 4x4 nibabel-convention affine matrix
+    :param orig_shape: spatial shape in the current orientation (x, y, z)
+    :param desired_nib_axcodes: destination orientation, e.g. 'LPI' or ('L', 'P', 'I')
+    :return: (new_nib_affine, new_shape)
+    """
+    if isinstance(desired_nib_axcodes, str):
+        desired_nib_axcodes = tuple(desired_nib_axcodes)
+    start_ornt = nib.orientations.io_orientation(nib_affine)
+    end_ornt = nib.orientations.axcodes2ornt(desired_nib_axcodes)
+    ornt_transform = nib.orientations.ornt_transform(start_ornt, end_ornt)
+    new_affine = nib.orientations.inv_ornt_aff(ornt_transform, orig_shape) @ nib_affine
+    new_shape = tuple(orig_shape[int(t[0])] for t in ornt_transform)
+    return new_affine, new_shape
+
+
 NibImage = nibabel.spatialimages.SpatialImage
 
 
@@ -49,6 +72,42 @@ class NibIO:
         if header:
             metadata.header = {key: img_struct.header[key] for key in img_struct.header}
         return img, metadata
+
+    @staticmethod
+    def read_meta(
+        input_path: str | os.PathLike[str],
+        desired_axcodes: tuple[str, ...] | str | None = None,
+        header: bool = False,
+    ) -> MetaData[object]:
+        """
+        Read only the metadata (affine, orientation, spatial shape) of a NIfTI file without loading pixel data.
+        :param input_path: path to the NIfTI file
+        :param desired_axcodes: optional desired orientation, e.g. 'RAS'
+        :param header: if True, populate metadata.header with NIfTI header fields
+        :return: MetaData with spatial_shape set
+        """
+        # nibabel already does lazy loading of the pixel data, so we can read the affine and header
+        # without loading the whole image.
+        img_struct = nib.load(input_path)
+        orig_ornt_str = "".join(nib.aff2axcodes(img_struct.affine))
+        nib_affine: NDArray[np.floating] = img_struct.affine
+        orig_shape: tuple[int, ...] = tuple(img_struct.shape[:3])
+
+        if desired_axcodes is not None:
+            new_affine, new_shape = _reorient_affine(nib_affine, orig_shape, desired_axcodes)
+        else:
+            new_affine, new_shape = nib_affine, orig_shape
+
+        metadata: MetaData[object] = MetaData(
+            affine=Affine(new_affine),
+            orig_ornt=orig_ornt_str,
+            coord_sys=NibIO.coord_sys,
+            spatial_shape=new_shape,
+        )
+        metadata.spatial_shape = new_shape
+        if header:
+            metadata.header = {key: img_struct.header[key] for key in img_struct.header}
+        return metadata
 
     @staticmethod
     def save_img(
