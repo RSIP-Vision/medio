@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 
 from medio.medimg.medimg import MedImg
@@ -15,9 +17,15 @@ class TestMedImgConstruction:
         assert mimg.np_image.shape == (10, 20, 30)
 
     def test_from_file(self, nii_path) -> None:
-        mimg = MedImg(None, None, filename=nii_path)
+        mimg = MedImg.from_file(filename=nii_path)
         assert mimg.np_image is not None
         assert mimg.np_image.ndim == 3
+
+    def test_from_file_deprecation_warning(self, nii_path) -> None:
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            _ = MedImg(None, None, filename=nii_path)
+            assert any(issubclass(warn.category, DeprecationWarning) for warn in w)
 
 
 class TestMedImgSlicing:
@@ -64,10 +72,10 @@ class TestMedImgSlicing:
 
 class TestMedImgSave:
     def test_save_roundtrip(self, nii_path, tmp_dir) -> None:
-        mimg = MedImg(None, None, filename=nii_path)
+        mimg = MedImg.from_file(filename=nii_path)
         out = tmp_dir / "out.nii.gz"
         mimg.save(out)
-        mimg2 = MedImg(None, None, filename=out)
+        mimg2 = MedImg.from_file(filename=out)
         np.testing.assert_array_almost_equal(
             np.asarray(mimg.np_image, dtype=float), np.asarray(mimg2.np_image, dtype=float)
         )

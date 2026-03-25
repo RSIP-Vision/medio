@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from typing import TYPE_CHECKING, Any
 
 from medio.metadata.affine import Affine
@@ -35,9 +36,22 @@ class MedImg:
         With possible kwargs for the reader.
         """
         if filename is not None:
+            # warn that using filename is deprecated and will be removed in future, and suggest using from_file instead
+            warnings.warn(
+                "Instantiating MedImg with a filename is deprecated and will be removed in a future release. "
+                "Please use the from_file class method instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             np_image, metadata = read_img(filename, **kwargs)
         self.np_image = np_image
         self.metadata = metadata  # type: ignore[assignment]
+
+    @classmethod
+    def from_file(cls, filename: str | os.PathLike[str], **kwargs: Any) -> MedImg:
+        """Alternative constructor to create MedImg directly from a file."""
+        np_image, metadata = read_img(filename, **kwargs)
+        return cls(np_image, metadata)
 
     def save(self, filename: str | os.PathLike[str], **kwargs: Any) -> None:
         save_img(filename, self.np_image, self.metadata, **kwargs)
