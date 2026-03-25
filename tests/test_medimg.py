@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 
 from medio.medimg.medimg import MedImg
 from medio.metadata.affine import Affine
 from medio.metadata.metadata import MetaData
-import warnings
 
 
 class TestMedImgConstruction:
@@ -19,7 +20,7 @@ class TestMedImgConstruction:
         mimg = MedImg.from_file(filename=nii_path)
         assert mimg.np_image is not None
         assert mimg.np_image.ndim == 3
-    
+
     def test_from_file_deprecation_warning(self, nii_path) -> None:
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
