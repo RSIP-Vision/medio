@@ -24,7 +24,7 @@ class TestMedImgConstruction:
     def test_from_file_deprecation_warning(self, nii_path) -> None:
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
-            mimg = MedImg(None, None, filename=nii_path)
+            _ = MedImg(None, None, filename=nii_path)
             assert any(issubclass(warn.category, DeprecationWarning) for warn in w)
 
 
