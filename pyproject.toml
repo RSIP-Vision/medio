@@ -1,6 +1,6 @@
 [project]
 name = "medio"
-version = "0.5.0"
+version = "0.6.0"
 description = "Medical images I/O Python package"
 authors = [
     { name = "RSIP Vision", email = "info@rsipvision.com" },
