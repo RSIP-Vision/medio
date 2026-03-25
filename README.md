@@ -17,12 +17,6 @@
 pip install medio
 ```
 
-Some compressed DICOM files require `gdcm`:
-
-```bash
-pip install gdcm
-```
-
 ## Usage
 
 ### Read and save any format
@@ -58,24 +52,10 @@ arr, meta = medio.read_img('scan.mhd')
 medio.save_dir('dicom_out/', arr, meta)
 ```
 
-### ITK pipeline bridge — no disk round-trip required
-
-```python
-import itk
-from medio import ItkIO
-
-itk_img = itk.imread('scan.nii.gz')
-arr, meta = ItkIO.from_itk_img(itk_img)     # import itk.Image → NumPy
-
-# ... process arr with any NumPy-compatible tool ...
-
-itk_result = ItkIO.to_itk_img(arr, meta)    # export back to itk.Image
-```
-
 ### Spatial slicing with automatic affine update
 
 ```python
-from medio.medimg.medimg import MedImg
+from medio.medimg import MedImg
 
 mimg = MedImg(arr, meta)
 cropped      = mimg[2:8, 3:7, :]    # origin updated
@@ -129,7 +109,7 @@ medio.read_meta(input_path, desired_ornt=None, backend=None,
 → MetaData
 ```
 
-Same parameters as `read_img` (no `dtype` or `channels_axis`). Returns metadata only — pixel data is never loaded. Populates `metadata.spatial_shape` with the image dimensions.
+See `read_img` for parameters. Reads only spatial metadata without loading pixel data.
 
 ---
 
@@ -153,16 +133,6 @@ medio.save_img(filename, np_image, metadata, use_original_ornt=True,
 | `mkdir` | bool | `False` | Create the output directory if it doesn't exist |
 | `parents` | bool | `False` | Create all missing parent directories |
 
-ITK `**kwargs`: `allow_dcm_reorient=False`, `compression=False`.
-
-When no preexisting metadata is available, construct a default:
-
-```python
-import numpy as np
-from medio import MetaData, save_img
-
-save_img('output.nii.gz', arr, MetaData(np.eye(4)))
-```
 
 ---
 
@@ -174,7 +144,7 @@ medio.save_dir(dirname, np_image, metadata, use_original_ornt=True,
                exist_ok=False, allow_dcm_reorient=False, **kwargs)
 ```
 
-Saves a 3D array as a DICOM series of 2D slices (ITK backend).
+Saves a 3D array as a DICOM series of 2D slices.
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
@@ -183,22 +153,6 @@ Saves a 3D array as a DICOM series of 2D slices (ITK backend).
 | `allow_dcm_reorient` | `False` | Reorient to nearest right-handed orientation if needed |
 | `pattern` | `'IM{}.dcm'` | Filename pattern; `{}` is replaced with the slice number |
 | `metadata_dict` | `None` | Override or add DICOM tags, e.g. `{'0008\|0060': 'US'}` |
-
----
-
-### `ItkIO` — ITK integration
-
-Static methods for importing and exporting `itk.Image` objects.
-
-| Method | Description |
-|--------|-------------|
-| `ItkIO.from_itk_img(itk_img, desired_ornt=None, coord_sys='itk', components_axis=0)` | `itk.Image` → `(ndarray, MetaData)` |
-| `ItkIO.to_itk_img(np_image, metadata, components_axis=None)` | `(ndarray, MetaData)` → `itk.Image` |
-| `ItkIO.reorient(img, desired_orientation)` | Reorient `itk.Image`, returns `(img, orig_code)` |
-| `ItkIO.get_img_aff(img)` | Extract `Affine` from `itk.Image` |
-| `ItkIO.set_img_aff(img, affine)` | Set affine on `itk.Image` in place |
-| `ItkIO.pack2img(array, affine, components_axis)` | `ndarray` + `Affine` → `itk.Image` |
-| `ItkIO.unpack_img(img)` | `itk.Image` → `(ndarray, Affine)` |
 
 ---
 
@@ -249,7 +203,7 @@ Container for an image array + metadata with spatially-aware indexing.
 from medio.medimg.medimg import MedImg
 
 mimg = MedImg(arr, meta)                         # from array + metadata
-mimg = MedImg(None, None, filename='scan.mhd')   # load from file
+mimg = MedImg.from_file('scan.mhd')   # load from file
 ```
 
 Indexing crops or downsamples the array and updates the affine automatically:
@@ -266,13 +220,7 @@ Properties: `.np_image`, `.metadata`. Method: `.save(filename)`.
 
 ### Orientation conventions
 
-medio uses **ITK convention** by default (`coord_sys='itk'`). ITK and NiBabel define orientation strings with opposite axis directions:
-
-| Convention | `'RAS'` means |
-|------------|---------------|
-| ITK | R→L, A→P, S→I |
-| NiBabel (`nib`) | L→R, P→A, I→S |
-
+medio uses **ITK convention** by default (`coord_sys='itk'`). 
 Pass `coord_sys='nib'` to `read_img` / `read_meta` to work in NiBabel convention throughout.
 
 ---
