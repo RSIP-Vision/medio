@@ -14,6 +14,7 @@ from medio.backends.pdcm_unpack_ds import affine_from_dataset, unpack_dataset
 from medio.metadata.convert_nib_itk import inv_axcodes
 from medio.metadata.metadata import MetaData
 from medio.metadata.pdcm_ds import MultiFrameFileDataset, convert_ds
+from medio.utils.dcm_series import resolve_series_datasets
 from medio.utils.files import parse_series_uids
 
 if TYPE_CHECKING:
@@ -38,6 +39,8 @@ class PdcmIO:
         globber: str = "*",
         allow_default_affine: bool = False,
         series: str | int | None = None,
+        validate_series: bool = True,
+        keep_dominant_geometry: bool = False,
     ) -> tuple[NDArray[np.generic], MetaData[object]]:
         """
         Read a dicom file or folder (series) and return the numpy array and the corresponding metadata
@@ -50,6 +53,10 @@ class PdcmIO:
         :param globber: relevant for a directory - globber for selecting the series files (all files by default)
         :param allow_default_affine: whether to allow default affine when some tags are missing (multiframe file only)
         :param series: str or int of the series to read (in the case of multiple series in a directory)
+        :param validate_series: for a directory, verify that the slices form one consistent 3d volume and raise
+        InconsistentSeriesError otherwise. Set False to restore the previous, unchecked behaviour
+        :param keep_dominant_geometry: for a directory, read only the slices sharing the dominant geometry,
+        discarding e.g. a localizer that shares the Series Instance UID
         :return: numpy array and metadata
         """
         input_path = Path(input_path)
@@ -62,6 +69,8 @@ class PdcmIO:
                 globber,
                 channels_axis=temp_channels_axis,
                 series=series,
+                validate_series=validate_series,
+                keep_dominant_geometry=keep_dominant_geometry,
             )
         else:
             img, metadata, channeled = PdcmIO.read_dcm_file(
@@ -84,6 +93,8 @@ class PdcmIO:
         globber: str = "*",
         allow_default_affine: bool = False,
         series: str | int | None = None,
+        validate_series: bool = True,
+        keep_dominant_geometry: bool = False,
     ) -> MetaData[object]:
         """
         Read only the metadata (affine, orientation, spatial shape) of a DICOM file or directory without loading pixel
@@ -100,7 +111,13 @@ class PdcmIO:
 
         input_path = Path(input_path)
         if input_path.is_dir():
-            slices = PdcmIO.extract_slices_no_pixels(input_path, globber, series)
+            slices = PdcmIO.extract_slices_no_pixels(
+                input_path,
+                globber,
+                series,
+                validate_series=validate_series,
+                keep_dominant_geometry=keep_dominant_geometry,
+            )
             affine = PdcmIO._compute_series_affine(slices)
             ds0 = slices[0]
             spatial_shape: tuple[int, ...] = (int(ds0.Columns), int(ds0.Rows), len(slices))
@@ -216,13 +233,21 @@ class PdcmIO:
         globber: str = "*",
         channels_axis: int | None = None,
         series: str | int | None = None,
+        validate_series: bool = True,
+        keep_dominant_geometry: bool = False,
     ) -> tuple[NDArray[np.generic], MetaData[object], bool]:
         """
         Reads a 3D dicom image: input path can be a file or directory (DICOM series).
         Return the image array, metadata, and whether it has channels
         """
         # find all dicom files within the specified folder, read every file separately and sort them by InstanceNumber
-        slices = PdcmIO.extract_slices(input_dir, globber=globber, series=series)
+        slices = PdcmIO.extract_slices(
+            input_dir,
+            globber=globber,
+            series=series,
+            validate_series=validate_series,
+            keep_dominant_geometry=keep_dominant_geometry,
+        )
         img, affine = combine_slices(slices)
         metadata = PdcmIO.aff2meta(affine)
         if header:
@@ -244,6 +269,8 @@ class PdcmIO:
         input_dir: str | os.PathLike[str],
         globber: str = "*",
         series: str | int | None = None,
+        validate_series: bool = True,
+        keep_dominant_geometry: bool = False,
     ) -> list[pydicom.Dataset]:
         """Extract slices from input_dir and return them sorted"""
         files = Path(input_dir).glob(globber)
@@ -259,13 +286,17 @@ class PdcmIO:
         slices = datasets[series_uid]
 
         slices.sort(key=lambda ds: ds.get("InstanceNumber", 0))
-        return slices
+        # Series Instance UID does not identify a volume on its own: a localizer can share it, and
+        # sorting by InstanceNumber can place it first, poisoning the origin as well as the spacing.
+        return resolve_series_datasets(slices, validate=validate_series, keep_dominant_geometry=keep_dominant_geometry)
 
     @staticmethod
     def extract_slices_no_pixels(
         input_dir: str | os.PathLike[str],
         globber: str = "*",
         series: str | int | None = None,
+        validate_series: bool = True,
+        keep_dominant_geometry: bool = False,
     ) -> list[pydicom.Dataset]:
         """Extract slices from input_dir without loading pixel data (header-only).
         Returns sorted list of pydicom Datasets read with stop_before_pixels=True."""
@@ -280,7 +311,7 @@ class PdcmIO:
         series_uid = parse_series_uids(input_dir, datasets.keys(), series, globber)
         slices = datasets[series_uid]
         slices.sort(key=lambda ds: ds.get("InstanceNumber", 0))
-        return slices
+        return resolve_series_datasets(slices, validate=validate_series, keep_dominant_geometry=keep_dominant_geometry)
 
     @staticmethod
     def aff2meta(affine: NDArray[np.floating]) -> MetaData[object]:
