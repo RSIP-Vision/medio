@@ -12,6 +12,7 @@ from medio.metadata.affine import Affine
 from medio.metadata.dcm_uid import generate_uid
 from medio.metadata.itk_orientation import itk_orientation_code
 from medio.metadata.metadata import MetaData, check_dcm_ornt
+from medio.utils.dcm_series import resolve_series_files
 from medio.utils.files import is_dicom, make_dir, parse_series_uids
 
 if TYPE_CHECKING:
@@ -40,6 +41,8 @@ class ItkIO:
         fallback_only: bool = True,
         series: str | int | None = None,
         private_tags: bool = False,
+        validate_series: bool = True,
+        keep_dominant_geometry: bool = False,
     ) -> tuple[NDArray[np.generic], MetaData[object]]:
         """
         The main reader function, reads images and performs reorientation and unpacking
@@ -50,6 +53,10 @@ class ItkIO:
         :param pixel_type: preferred itk pixel type for the image
         :param fallback_only: if True, finds the pixel_type automatically and uses pixel_type only if failed
         :param series: str or int of the series to read (in the case of multiple series in a directory)
+        :param validate_series: for a dicom directory, verify that the slices form one consistent 3d volume and
+        raise InconsistentSeriesError otherwise. Set False to restore the previous, unchecked behaviour
+        :param keep_dominant_geometry: for a dicom directory, read only the slices sharing the dominant geometry,
+        discarding e.g. a localizer that shares the Series Instance UID
         :return: numpy image and metadata object which includes pixdim, affine, original orientation string and
         coordinates system
         """
@@ -66,7 +73,15 @@ class ItkIO:
             if imageio is not None:
                 # fallback_only=True would skip the imageio, so disable it
                 fallback_only = False
-            img = ItkIO.read_dir(str(input_path), pixel_type, fallback_only, series, imageio)
+            img = ItkIO.read_dir(
+                str(input_path),
+                pixel_type,
+                fallback_only,
+                series,
+                imageio,
+                validate_series=validate_series,
+                keep_dominant_geometry=keep_dominant_geometry,
+            )
         elif input_path.is_file():
             # If the input file is not a dicom (e.g. NIfTI), fallback to not use imageio.
             use_dicom_imageio = imageio is not None and imageio.CanReadFile(str(input_path))
@@ -109,6 +124,8 @@ class ItkIO:
         fallback_only: bool = True,
         series: str | int | None = None,
         private_tags: bool = False,
+        validate_series: bool = True,
+        keep_dominant_geometry: bool = False,
     ) -> MetaData[object]:
         """
         Read only the metadata (affine, orientation, spatial shape) without loading pixel data.
@@ -120,6 +137,8 @@ class ItkIO:
         :param fallback_only: if True, auto-detect pixel type
         :param series: series to read when a directory has multiple series
         :param private_tags: if True, also load private DICOM tags (requires header=True)
+        :param validate_series: for a dicom directory, verify that the slices form one consistent 3d volume
+        :param keep_dominant_geometry: for a dicom directory, use only the slices sharing the dominant geometry
         :return: MetaData with spatial_shape set
         """
 
@@ -130,7 +149,12 @@ class ItkIO:
         image_type = itk.Image[pixel_type, ItkIO.dimension]
 
         if input_path.is_dir():
-            filenames = ItkIO.extract_series(str(input_path), series)
+            filenames = ItkIO.extract_series(
+                str(input_path),
+                series,
+                validate_series=validate_series,
+                keep_dominant_geometry=keep_dominant_geometry,
+            )
             reader = itk.ImageSeriesReader[image_type].New()
             if isinstance(filenames, str):
                 reader.SetFileNames([filenames])
@@ -460,6 +484,8 @@ class ItkIO:
         fallback_only: bool = False,
         series: str | int | None = None,
         imageio: object | None = None,
+        validate_series: bool = True,
+        keep_dominant_geometry: bool = False,
     ) -> object:
         """
         Read a dicom directory. If there is more than one series in the directory an error is raised
@@ -467,21 +493,36 @@ class ItkIO:
         Shorter option for a single series (provided the slices order is known):
         >>> itk.imread([filename0, filename1, ...])
         """
-        filenames = ItkIO.extract_series(dirname, series)
+        filenames = ItkIO.extract_series(
+            dirname, series, validate_series=validate_series, keep_dominant_geometry=keep_dominant_geometry
+        )
         return itk.imread(filenames, pixel_type, fallback_only, imageio)
 
     @staticmethod
-    def extract_series(dirname: str, series: str | int | None = None) -> list[str] | str:
-        """Extract series filenames from the directory dirname"""
+    def extract_series(
+        dirname: str,
+        series: str | int | None = None,
+        validate_series: bool = True,
+        keep_dominant_geometry: bool = False,
+    ) -> list[str] | str:
+        """Extract series filenames from the directory dirname.
+
+        Series Instance UID alone does not identify a volume: a localizer/scout can share it with the
+        acquisition, and including it silently corrupts the derived slice spacing. So the grouped
+        filenames are geometry-checked before they are read (see medio.utils.dcm_series).
+        """
         names_generator = itk.GDCMSeriesFileNames.New()
         names_generator.SetDirectory(dirname)
 
         series_uids = names_generator.GetSeriesUIDs()
         series_uid = parse_series_uids(dirname, series_uids, series)
 
-        filenames = names_generator.GetFileNames(series_uid)
+        filenames = list(names_generator.GetFileNames(series_uid))
+        filenames = resolve_series_files(
+            filenames, validate=validate_series, keep_dominant_geometry=keep_dominant_geometry
+        )
         if len(filenames) == 1:
-            filenames = filenames[0]  # there is a single image in the series
+            return filenames[0]  # there is a single image in the series
 
         return filenames
 

@@ -52,6 +52,34 @@ arr, meta = medio.read_img('scan.mhd')
 medio.save_dir('dicom_out/', arr, meta)
 ```
 
+### DICOM series geometry is validated
+
+A DICOM directory is only a valid 3D volume if its slices agree geometrically. Series Instance UID
+does not guarantee that: scanners emit a localizer/scout under the **same** Series Instance UID as
+the acquisition, and reading it as part of the volume silently corrupts the derived slice spacing.
+`read_img` and `read_meta` therefore refuse an inconsistent series instead of returning a wrong
+image:
+
+```python
+medio.read_img('dicom_dir/')
+# InconsistentSeriesError: DICOM series mixes slice orientations: 1 of 325 slice(s) are not
+# parallel to the first ... typically a localizer/scout slice sharing the Series Instance UID.
+
+# read only the slices that share the dominant geometry (drops the localizer):
+arr, meta = medio.read_img('dicom_dir/', keep_dominant_geometry=True)
+
+# opt out entirely and get the previous, unchecked behaviour:
+arr, meta = medio.read_img('dicom_dir/', validate_series=False)
+```
+
+The checks are the invariants any single volume must satisfy — one orientation, one in-plane
+geometry, uniformly spaced slice positions — and they catch missing or duplicated slices as well as
+localizers. `SliceThickness` is deliberately **not** required to equal the slice spacing: gapped and
+overlapping reconstructions are legitimate.
+
+`keep_dominant_geometry` filters first and then still validates what remains, so it discards
+off-geometry slices without hiding a genuine gap in the rest.
+
 ### Spatial slicing with automatic affine update
 
 ```python
@@ -97,7 +125,12 @@ medio.read_img(input_path, desired_ornt=None, backend=None, dtype=None,
 | `channels_axis` | int \| None | `-1` | Axis for multi-channel (e.g. RGB) images |
 | `coord_sys` | `'itk'` \| `'nib'` \| None | `'itk'` | Coordinate convention for orientation and metadata |
 
-`**kwargs` are passed to the backend. ITK-specific: `pixel_type`, `fallback_only`, `series`. pydicom-specific: `globber`, `allow_default_affine`, `series`.
+`**kwargs` are passed to the backend. DICOM directories (both backends): `series`, `validate_series`, `keep_dominant_geometry`. ITK-specific: `pixel_type`, `fallback_only`. pydicom-specific: `globber`, `allow_default_affine`.
+
+| DICOM-directory parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `validate_series` | bool | `True` | Raise `InconsistentSeriesError` unless the slices form one consistent 3D volume. `False` restores the previous, unchecked behaviour |
+| `keep_dominant_geometry` | bool | `False` | Read only the slices sharing the dominant geometry, discarding e.g. a localizer that shares the Series Instance UID |
 
 ---
 
