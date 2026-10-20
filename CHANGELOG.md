@@ -13,6 +13,11 @@
   the slice axis from the first to the last `ImagePositionPatient`, with or without
   `validate_series`. The pydicom backend had the same sign error for a single slice; both backends now
   ignore the tag's sign.
+- **`keep_dominant_geometry=True` no longer reads the remaining slices in scrambled order (ITK
+  backend).** When the localizer is listed first, GDCM cannot sort the series by position and falls
+  back to lexical file names (`IM1, IM10, IM100, …`). Dropping the localizer kept that order, so the
+  slices were stacked out of order with a wrong spacing. Series files are now re-sorted along the slice
+  normal whenever their order is not monotonic; a monotonic order is kept as given.
 
 ## 0.7.0
 
