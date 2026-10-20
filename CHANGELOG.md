@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **A DICOM series with a negative `SpacingBetweenSlices` is no longer mirrored along the slice axis
+  by the ITK backend** ([#24](https://github.com/RSIP-Vision/medio/issues/24)). Some GE scanners
+  (e.g. Discovery CT750 HD) write a negative value. ITK turned it into a negated slice direction, so
+  slice `k` was placed at `origin - k*spacing` instead of `origin + k*spacing` (on a real 821-slice CT,
+  the last slice was ~1 m from its true position). The voxels and origin were correct and the slice
+  positions consistent, so series validation could not catch it. `read_img` and `read_meta` now point
+  the slice axis from the first to the last `ImagePositionPatient`, with or without
+  `validate_series`. The pydicom backend had the same sign error for a single slice; both backends now
+  ignore the tag's sign.
+- **`keep_dominant_geometry=True` no longer reads the remaining slices in scrambled order (ITK
+  backend).** When the localizer is listed first, GDCM cannot sort the series by position and falls
+  back to lexical file names (`IM1, IM10, IM100, …`). Dropping the localizer kept that order, so the
+  slices were stacked out of order with a wrong spacing. Series files are now re-sorted along the slice
+  normal whenever their order is not monotonic; a monotonic order is kept as given.
+
 ## 0.7.0
 
 ### Breaking

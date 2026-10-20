@@ -270,10 +270,29 @@ def resolve_series_files(
     if validate:
         validate_series(kept, **tolerances)
 
-    if not keep_dominant_geometry:
+    if keep_dominant_geometry:
+        keep_keys = {g.key for g in kept}
+        filenames = [f for f in filenames if str(f) in keep_keys]
+    elif len(geometries) != len(filenames):
+        return list(filenames)  # some files carry no geometry to order them by
+    return _in_slice_order(filenames, kept)
+
+
+def _in_slice_order(filenames: Sequence[str], geometries: Sequence[SliceGeometry]) -> list[str]:
+    """Sort the files along the slice normal unless they already advance monotonically along it.
+
+    GDCM sorts a series by position only when it can; otherwise (e.g. a localizer listed first) it falls
+    back to lexical file names, and ITK then stacks the slices in that scrambled order. An order that is
+    already monotonic, ascending or descending, is kept as given.
+    """
+    if len(geometries) < 2:
         return list(filenames)
-    keep_keys = {g.key for g in kept}
-    return [f for f in filenames if str(f) in keep_keys]
+    normal = geometries[0].normal
+    along = {g.key: float(np.dot(np.asarray(g.position, float), normal)) for g in geometries}
+    steps = np.diff(np.asarray([along[str(f)] for f in filenames], dtype=float))
+    if np.all(steps > 0) or np.all(steps < 0):
+        return list(filenames)
+    return sorted(filenames, key=lambda f: along[str(f)])
 
 
 def resolve_series_datasets(

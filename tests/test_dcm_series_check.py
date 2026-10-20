@@ -17,7 +17,7 @@ import pydicom.uid
 import pytest
 
 import medio
-from medio.utils.dcm_series import InconsistentSeriesError
+from medio.utils.dcm_series import InconsistentSeriesError, resolve_series_files
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -106,6 +106,36 @@ def test_opt_in_filter_drops_the_localizer(contaminated_series: Path, backend: L
     img, md = medio.read_img(contaminated_series, backend=backend, keep_dominant_geometry=True)
     assert img.shape[2] == CLEAN_N
     assert float(np.asarray(md.spacing)[2]) == pytest.approx(CLEAN_SPACING, rel=1e-6)
+
+
+def _z(path: str) -> float:
+    return float(pydicom.dcmread(path, stop_before_pixels=True).ImagePositionPatient[2])
+
+
+def _z_steps(paths: list[str]) -> np.ndarray:
+    return np.diff(np.asarray([_z(f) for f in paths], dtype=float))
+
+
+def test_filter_restores_slice_order(contaminated_series: Path) -> None:
+    """With the localizer listed first, GDCM cannot sort by position and falls back to lexical file
+    names (IM1, IM10, IM100, ...). Dropping the localizer must not leave the stack in that order, or
+    ITK stacks the slices scrambled (seen in CI, where the runner's filesystem lists it first)."""
+    lexical = sorted(str(f) for f in contaminated_series.glob("*.dcm"))
+    kept = resolve_series_files(lexical, keep_dominant_geometry=True)
+    assert len(kept) == CLEAN_N
+    assert np.all(_z_steps(kept) > 0)
+
+
+def test_valid_series_in_lexical_order_is_sorted(clean_series: Path) -> None:
+    lexical = sorted(str(f) for f in clean_series.glob("*.dcm"))
+    assert not np.all(_z_steps(lexical) > 0), "fixture must start out of order"
+    assert np.all(_z_steps(resolve_series_files(lexical)) > 0)
+
+
+def test_monotonic_order_is_kept_as_given(clean_series: Path) -> None:
+    """Only a scrambled order is changed: a descending stack is a valid order and stays as GDCM gave it."""
+    descending = sorted((str(f) for f in clean_series.glob("*.dcm")), key=_z, reverse=True)
+    assert resolve_series_files(descending) == descending
 
 
 def test_missing_slice_fails_even_with_uniform_orientation(clean_series: Path) -> None:
