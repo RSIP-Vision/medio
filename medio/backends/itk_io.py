@@ -12,7 +12,7 @@ from medio.metadata.affine import Affine
 from medio.metadata.dcm_uid import generate_uid
 from medio.metadata.itk_orientation import itk_orientation_code
 from medio.metadata.metadata import MetaData, check_dcm_ornt
-from medio.utils.dcm_series import resolve_series_files
+from medio.utils.dcm_series import geometry_from_file, resolve_series_files
 from medio.utils.files import is_dicom, make_dir, parse_series_uids
 
 if TYPE_CHECKING:
@@ -91,6 +91,7 @@ class ItkIO:
             else:
                 imageio = None
             img = ItkIO.read_img_file(str(input_path), pixel_type, fallback_only, imageio)
+            ItkIO.fix_slice_direction(img, str(input_path))
         else:
             raise FileNotFoundError(f'No such file or directory: "{input_path}"')
 
@@ -169,6 +170,7 @@ class ItkIO:
                 imageio = None
             reader.UpdateOutputInformation()
             img = reader.GetOutput()
+            ItkIO.fix_slice_direction(img, filenames)
         elif input_path.is_file():
             reader = itk.ImageFileReader[image_type].New()
             reader.SetFileName(str(input_path))
@@ -181,6 +183,7 @@ class ItkIO:
                 imageio = None
             reader.UpdateOutputInformation()
             img = reader.GetOutput()
+            ItkIO.fix_slice_direction(img, str(input_path))
         else:
             raise FileNotFoundError(f'No such file or directory: "{input_path}"')
 
@@ -496,7 +499,37 @@ class ItkIO:
         filenames = ItkIO.extract_series(
             dirname, series, validate_series=validate_series, keep_dominant_geometry=keep_dominant_geometry
         )
-        return itk.imread(filenames, pixel_type, fallback_only, imageio)
+        img = itk.imread(filenames, pixel_type, fallback_only, imageio)
+        ItkIO.fix_slice_direction(img, filenames)
+        return img
+
+    @staticmethod
+    def fix_slice_direction(img: object, filenames: list[str] | str) -> None:
+        """Point the slice axis of a DICOM read the way its ImagePositionPatient values advance (issue #24).
+
+        GDCMImageIO takes the slice spacing from SpacingBetweenSlices, and ITK turns a negative value (written by
+        e.g. GE Discovery CT750 HD) into a negated slice direction. ImageSeriesReader then fixes the spacing magnitude
+        from the slice positions but keeps that direction, mirroring the volume about its first slice. Only the sign
+        is corrected: the reference is the first-to-last position step, or the orientation normal for a single slice.
+        Non-DICOM inputs are left untouched.
+        """
+        if isinstance(filenames, str):
+            filenames = [filenames]
+        first = geometry_from_file(filenames[0])
+        if first is None or img.GetImageDimension() < 3:
+            return
+        reference = first.normal
+        if len(filenames) > 1:
+            last = geometry_from_file(filenames[-1])
+            step = None if last is None else np.subtract(last.position, first.position)
+            if step is not None and np.linalg.norm(step) > 0:
+                reference = step
+        affine = ItkIO.get_img_aff(img)
+        direction = affine.direction.copy()
+        if direction[:, 2] @ reference >= 0:
+            return
+        direction[:, 2] *= -1
+        ItkIO.set_img_aff(img, Affine(direction=direction, spacing=affine.spacing, origin=affine.origin))
 
     @staticmethod
     def extract_series(

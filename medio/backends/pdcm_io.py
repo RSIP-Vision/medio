@@ -162,12 +162,22 @@ class PdcmIO:
         return metadata
 
     @staticmethod
+    def _orient_single_slice_axis(affine: NDArray[np.floating], ds: pydicom.Dataset) -> NDArray[np.floating]:
+        """dicom_numpy scales a lone slice's axis by the signed SpacingBetweenSlices; point it along row x col (#24)."""
+        row_cosine, column_cosine, _ = _extract_cosines(ds.ImageOrientationPatient)
+        if affine[:3, 2] @ np.cross(row_cosine, column_cosine) >= 0:
+            return affine
+        affine = affine.copy()
+        affine[:3, 2] *= -1
+        return affine
+
+    @staticmethod
     def _compute_single_slice_affine(ds: pydicom.Dataset) -> NDArray[np.float32]:
         """Compute affine for a regular (non-multiframe) single-slice DICOM dataset using header tags only."""
         row_cosine, column_cosine, _ = _extract_cosines(ds.ImageOrientationPatient)
         row_spacing, column_spacing = [float(x) for x in ds.PixelSpacing]
         slice_cosine = np.cross(row_cosine, column_cosine)
-        slice_spacing = float(getattr(ds, "SpacingBetweenSlices", 1))
+        slice_spacing = abs(float(getattr(ds, "SpacingBetweenSlices", 1)))  # sign is not meaningful (#24)
         transform = np.identity(4, dtype=np.float32)
         transform[:3, 0] = row_cosine * column_spacing
         transform[:3, 1] = column_cosine * row_spacing
@@ -184,7 +194,7 @@ class PdcmIO:
         first_pos = np.array([float(x) for x in ds0.ImagePositionPatient], dtype=np.float32)
         if len(slices) == 1:
             slice_cosine = np.cross(row_cosine, column_cosine)
-            slice_spacing = float(getattr(ds0, "SpacingBetweenSlices", 1))
+            slice_spacing = abs(float(getattr(ds0, "SpacingBetweenSlices", 1)))  # sign is not meaningful (#24)
             slice_vector = slice_cosine * slice_spacing
         else:
             last_pos = np.array([float(x) for x in slices[-1].ImagePositionPatient], dtype=np.float32)
@@ -213,6 +223,7 @@ class PdcmIO:
             img, affine = unpack_dataset(ds, allow_default_affine=allow_default_affine)
         else:
             img, affine = combine_slices([ds])
+            affine = PdcmIO._orient_single_slice_axis(affine, ds)
         metadata = PdcmIO.aff2meta(affine)
         if header:
             metadata.header = {str(key): ds[key] for key in ds}
@@ -249,6 +260,8 @@ class PdcmIO:
             keep_dominant_geometry=keep_dominant_geometry,
         )
         img, affine = combine_slices(slices)
+        if len(slices) == 1:
+            affine = PdcmIO._orient_single_slice_axis(affine, slices[0])
         metadata = PdcmIO.aff2meta(affine)
         if header:
             # TODO: add header support, something like
