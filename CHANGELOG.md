@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **medio installs on ARM Linux (linux-aarch64).** `itk` was unpinned, so a resolver could pick a
+  release without an aarch64 wheel (e.g. 5.4.6, which also has no sdist) and the install failed.
+  medio now requires `itk>=5.4.7`, the first release with aarch64 wheels (it has wheels for every
+  platform and Python version medio supports).
+
 ## 0.7.1
 
 ### Fixed
