@@ -5,6 +5,7 @@ import pprint
 from pathlib import Path
 from typing import TYPE_CHECKING, Union
 
+from pydicom.misc import is_dicom as _is_dicom
 from typing_extensions import TypeGuard
 
 if TYPE_CHECKING:
@@ -13,7 +14,9 @@ if TYPE_CHECKING:
 PathLike = Union[os.PathLike[str], str]
 
 
-def is_file_suffix(filename: PathLike, suffixes: tuple[str, ...], check_exist: bool = True) -> bool:
+def is_file_suffix(
+    filename: PathLike, suffixes: tuple[str, ...], check_exist: bool = True
+) -> bool:
     """
     is_file + check for suffix
     :param filename: pathlike object
@@ -27,15 +30,31 @@ def is_file_suffix(filename: PathLike, suffixes: tuple[str, ...], check_exist: b
 
 
 def is_nifti(filename: PathLike, check_exist: bool = True) -> TypeGuard[PathLike]:
-    return is_file_suffix(
-        filename,
-        (".nii.gz", ".nii", ".img.gz", ".img", ".hdr"),
-        check_exist=check_exist,
-    )
+    filename = Path(filename)
+
+    if check_exist and not Path(filename).is_file():
+        return False
+
+    if filename.endswith(".gz"):
+        import gzip
+
+        opener = gzip.open
+    else:
+        opener = open
+
+    try:
+        with opener(filename, "rb") as f:
+            f.seek(344)
+            magic = f.read(4)
+            return magic in [b"ni1\0", b"n+1\0", b"ni2\0"]
+    except Exception:
+        return False
 
 
 def is_dicom(filename: PathLike, check_exist: bool = True) -> TypeGuard[PathLike]:
-    return is_file_suffix(filename, (".dcm", ".dicom", ".DCM", ".DICOM"), check_exist=check_exist)
+    if check_exist and not Path(filename).is_file():
+        return False
+    return _is_dicom(filename)
 
 
 def make_empty_dir(dir_path: PathLike, parents: bool = False) -> None:
@@ -72,7 +91,8 @@ def parse_series_uids(
     num_series = len(keys)
     if num_series == 0:
         raise FileNotFoundError(
-            f'No DICOMs in:\n"{input_dir}"' + (f'\nwith globber="{globber}"' if globber is not None else "")
+            f'No DICOMs in:\n"{input_dir}"'
+            + (f'\nwith globber="{globber}"' if globber is not None else "")
         )
 
     if num_series == 1:
@@ -93,5 +113,7 @@ def parse_series_uids(
             return keys[series]
         else:
             if series not in keys:
-                raise ValueError(f"The series:\n'{series}'\nis not one of the following:\n{pprint.pformat(keys)}")
+                raise ValueError(
+                    f"The series:\n'{series}'\nis not one of the following:\n{pprint.pformat(keys)}"
+                )
             return series
