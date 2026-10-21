@@ -31,7 +31,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "itk",
+    "itk>=5.4.7",  # first release with linux-aarch64 wheels
     "nibabel",
     "numpy",
     "pydicom",
